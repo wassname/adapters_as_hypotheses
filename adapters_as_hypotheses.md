@@ -2,23 +2,21 @@
 
 *What does each PEFT method believe about transformer internals?*
 
+Note: This is an AI generated and guided literative survey, it does not speak for me but I share it in the hope that it is usefull, and I do believe these these exist and give us insight about how best to intervene in transformers
+
 ## Why care?
 
-We want to understand how transformers work. There are many approaches -- probing, ablation, SAEs -- but most of them *observe* rather than *intervene*. Probing finds representations that predict behavior, but high probe accuracy does not mean the model uses that representation ([Belinkov, 2022](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00254/43503)). CCS discovers latent knowledge but cannot intervene on it ([Burns et al., 2022](https://arxiv.org/abs/2212.03827)). Intervention shortcuts both problems: if modifying a representation reliably changes behavior, we have causal evidence of what we control (I argued this in [AntiPaSTO](https://arxiv.org/abs/2601.07473)).
+Each PEFT adapter constrains *how* you can update pretrained weights. That constraint is a structural hypothesis about transformer internals. When one adapter outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's assumptions get evidential support as a description of the weight manifold.
 
-<!-- TODO is ths all really relevent for the intro and audience, seems long and not to the point, is the lesswrong one better? -->
+This is an underused source of causal evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. If an adapter generalizes out-of-distribution, the geometric property it exploits is probably causally relevant to behavior, not merely correlated with it.
 
-There is an underappreciated source of exactly this kind of causal evidence: the PEFT adapter literature.
+I went through ~30 PEFT methods in HuggingFace PEFT and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
 
-Each adapter constrains *how* you can update pretrained weights. When one adapter architecture outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's structural assumptions get stronger support as a description of the weight manifold. This is a natural experiment running across many papers, and it is still underused as evidence about representations.
+1. **SVD basis matters.** Methods that initialize or constrain updates in the model's own singular-vector basis (PiSSA, SVFT, SSVD, CLOVER, PSOFT) consistently outperform random-basis alternatives at comparable budgets.
+2. **Direction and strength should decouple.** Methods that separate *which way* to move in weight space from *how far* (DoRA, DeLoRA, ROAD, AntiPaSTO) show better stability and sometimes better OOD transfer.
+3. **Much of adaptation is gain control.** Scaling-only methods (IA3, VeRA, LN Tuning) work surprisingly well, suggesting pretrained features are often already sufficient -- the bottleneck is which ones to amplify.
 
-GDM's interpretability team recently pivoted toward "pragmatic interpretability" -- directly solving problems on the critical path to AGI going well, grounded in proxy tasks with empirical feedback ([Nanda et al., 2025](https://www.lesswrong.com/posts/StENzDcD3kpfGJssR/a-pragmatic-vision-for-interpretability)). Adapter benchmarks are precisely this: empirical feedback on which structural assumptions about transformer internals hold up under intervention.
-
-If an adapter generalizes out-of-distribution, that is stronger evidence that the geometric structure it exploits is causally relevant to behavior, not merely correlated. From my [AntiPaSTO paper](https://arxiv.org/abs/2601.07473):
-
-> Each adapter architecture encodes a claim about how to intervene in transformer internals. LoRA hypothesizes weight changes are low-rank. OFT hypothesizes orthogonal transformations preserve semantic structure. VeRA hypothesizes shared random projections plus learned scaling suffice. DeLoRA hypothesizes direction and magnitude should decouple. PiSSA hypothesizes principal components matter most. Our choice -- Cayley rotations of SVD singular vectors -- hypothesizes that the model's own learned basis defines the natural intervention manifold. Adapters that generalize out-of-distribution tell us which geometric structures are causally relevant to behavior, not merely correlated with it.
-
-This is a pragmatic, interventionist program: we learn about internals by seeing which interventions *work*. An adapter that transfers where others fail reveals something real about the geometry of the representation. Below, we catalog each major PEFT method as a hypothesis, extract pseudocode for the intervention, and weigh the evidence.
+These three claims are the main takeaway. The catalog below is the evidence.
 
 ### Evidence scoring
 
@@ -917,27 +915,38 @@ The key: instead of $W' = W + \Delta W$, apply $h' = h + R^\top (R h + b - R h)$
 
 ## Themes: What the Evidence Tells Us
 
-Looking across all 33 methods, a coherent tentative story appears once benchmark noise is reduced. Many successful adapters make geometric bets: first choose coordinates that align with pretrained structure, then constrain updates so they do not destroy that structure, then control update strength explicitly.
+Looking across all 33 methods, the successful adapters share a recipe: choose coordinates that align with pretrained structure, constrain updates to preserve that structure, and control update strength explicitly.
 
-A quick source-level pass over the paper texts helps anchor this interpretation. Direct "we hypothesize" style statements cluster into the same buckets used here: LoRA and RandLoRA for low-rank sufficiency limits; OFT and ETHER for orthogonality and preserved angular structure; DoRA and DeLoRA for direction-strength decoupling; IA3 for scaling-only adaptation; SHiRA and C3A for high-rank and structural alternatives; AntiPaSTO for SVD-coordinate intervention and OOD transfer. That clustering is not perfect, but it is strong enough to justify organizing the literature by theme rather than by year.
-<!-- TODO IS this meta statement needed for the audience or directed at them? we don't actually do clustering either -->
-
-
-The strongest recurring signal is *basis choice*. SVD-aware methods such as PiSSA, SSVD, CLOVER, and PSOFT often beat random-basis baselines under similar budgets in reported setups. In practical terms, initializing in the model's singular-vector basis reduces the search problem. The optimizer starts in a subspace the model already uses. This is not proof that SVD is uniquely correct, but it is stronger evidence than a single benchmark win.
-
-*Orthogonal* methods add the next piece. OFT and BOFT show that bounded rotations can preserve useful behavior while still adapting to new tasks. The Cayley parameterization appears across OFT, SSVD, PSOFT, and AntiPaSTO because it keeps rotations orthogonal without repeated projection steps. Pure orthogonality can be too rigid when tasks need gain changes, so methods that pair rotations with magnitude control tend to perform better.
-
-That leads to the *direction-versus-strength* split. DoRA, DeLoRA, ROAD, and AntiPaSTO all separate where to move in weight space from how far to move. In runs that report careful ablations, this split often improves stability and sometimes final accuracy. Whether this is a deep property of transformer computation or mainly an optimization advantage is still open.
-
-A parallel thread is *gain control*. IA3, VeRA, and LN tuning show that a lot of adaptation comes from rescaling existing features instead of inventing new ones. This explains why tiny parameter budgets can work well on many tasks. It also clarifies where they fail: when tasks require genuinely new feature combinations, scaling-only methods plateau.
-
-The *rank* debate looks secondary once basis is accounted for. Full-rank updates can help on harder tasks, as RandLoRA and C3A suggest, but PiSSA and SVFT show that a good low-rank subspace can beat a poorly chosen full-rank update. In practice, "which subspace" matters more than "how many free directions".
-
-Finally, methods that respect *functional structure* are promising but early. CLOVER's joint treatment of Q-K and V-O pairs outperforms per-matrix updates, and ReFT shows that targeted activation interventions can be far more parameter-efficient than weight updates. Both suggest that treating transformers as computation graphs, not bags of matrices, is a productive direction.
-
-### Overall picture
-
-Across methods, the same pattern keeps repeating: adapters work best when they preserve pretrained structure and then move within it in controlled ways. SVD-aware coordinates identify high-signal directions, near-orthogonal transforms protect useful geometry, and explicit strength controls prevent overwriting. This is currently the strongest empirical pattern in the catalog. It does not settle causality by itself, but it narrows the search space and yields concrete, falsifiable predictions for mechanistic work.
+The pattern is strong enough to organize the literature by theme rather than by year.
 
 
-<!-- TODO kind of weak I'd rather make a prediciton, or state strength of evidence, or if it changed my mind here -->
+The strongest signal is *basis choice*. SVD-aware methods (PiSSA, SSVD, CLOVER, PSOFT) beat random-basis baselines under similar budgets across multiple independent papers and modalities. Initializing in the model's singular-vector basis reduces the search problem: the optimizer starts in a subspace the model already uses. This is not proof that SVD is uniquely correct, but it is the most replicated finding in the catalog.
+
+*Orthogonal* methods add the next constraint. OFT and BOFT show that bounded rotations can preserve useful behavior while adapting. The Cayley parameterization appears across OFT, SSVD, PSOFT, and AntiPaSTO because it keeps rotations orthogonal without projection steps. But pure orthogonality is too rigid when tasks need gain changes -- methods that pair rotations with magnitude control perform better.
+
+The *direction-versus-strength* split follows naturally. DoRA, DeLoRA, ROAD, and AntiPaSTO all separate where to move in weight space from how far to move. In papers with careful ablations, this split improves stability and sometimes final accuracy. Whether this reflects a deep property of transformer computation or mainly an optimization advantage is open, but the practical effect is consistent.
+
+*Gain control* is the simplest and most surprising finding. IA3, VeRA, and LN tuning show that much of adaptation is rescaling existing features, not inventing new ones. This explains tiny parameter budgets working on many tasks, and clarifies where they fail: tasks requiring genuinely new feature combinations.
+
+The *rank* debate is secondary once basis is accounted for. Full-rank updates help on harder tasks (RandLoRA, C3A), but a good low-rank subspace beats a poorly chosen full-rank update (PiSSA, SVFT). "Which subspace" matters more than "how many free directions".
+
+Finally, methods that respect *functional architecture* are promising but early. CLOVER's joint Q-K and V-O treatment outperforms per-matrix updates in reported setups, and ReFT shows targeted activation interventions can be far more parameter-efficient than weight updates. Both suggest that treating transformer layers as computation graphs -- not bags of independent matrices -- is a productive direction.
+
+### What I now believe (and didn't before)
+
+Before writing this catalog, I thought of adapters mainly as engineering trade-offs: LoRA is cheap, full FT is better, pick your budget. After reading ~30 papers carefully, I updated on three things:
+
+1. **The SVD basis is probably not arbitrary.** The consistent advantage of SVD-initialized methods (PiSSA > LoRA, SVFT recovering 96% of full FT with 0.006% params, CLOVER's joint SVD beating per-matrix LoRA) is hard to explain as coincidence. The model's singular vectors appear to encode meaningful computational directions that the optimizer discovers faster when given them as a starting point. Strength of evidence: moderate (multiple independent groups, multiple modalities, but all within-paper comparisons).
+
+2. **Orthogonality is useful but not sufficient.** OFT/BOFT show that angle-preserving transforms work well when you want to preserve behavior while adapting. But pure orthogonality prevents magnitude changes, which limits it. The best methods (PSOFT, AntiPaSTO, SSVD) pair orthogonal rotations with explicit magnitude/scale controls. This is why DoRA consistently beats LoRA -- it captures the magnitude channel that LoRA conflates with direction.
+
+3. **Most adaptation is simpler than we assume.** IA3's success with just a per-channel scaling vector, VeRA's success with random projections + learned scaling, and LN Tuning's success with just normalization parameters all point to the same thing: pretrained models already compute most task-relevant features. Adaptation is mostly about *gain control* -- amplifying the right features and suppressing the wrong ones. This has practical implications: if your task mainly needs gain control, use IA3 and save compute. If it needs new feature interactions, you need at least low-rank updates.
+
+### Predictions
+
+- Methods combining SVD basis + orthogonal rotation + decoupled magnitude (like PSOFT, AntiPaSTO) will continue to beat LoRA on OOD benchmarks as more groups test them. Confidence: 70%.
+- Joint-structure methods (CLOVER-style, treating Q-K and V-O as paired) will outperform per-matrix methods when properly controlled. Confidence: 65%.
+- The gain-control insight predicts a rank ordering for "how much adapter expressivity does task X need?": distribution shift (gain control suffices) < instruction following (low-rank) < novel capabilities (full-rank or high-rank sparse). Confidence: 60%.
+- ReFT-style activation interventions will eventually beat weight-space adapters on parameter efficiency, but weight-space adapters will remain better for deployment (merging into weights). Confidence: 75%.
+
+**Conflict of interest:** The strongest OOD result in this catalog is my own work ([AntiPaSTO](https://arxiv.org/abs/2601.07473)). I've tried to grade it honestly, but read the evidence for it with appropriate skepticism. I developed it with the same insights in this document, so it's not entirely suprising that it fits well.
