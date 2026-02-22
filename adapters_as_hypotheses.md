@@ -18,17 +18,20 @@ If the adapter generalizes out-of-distribution, that tells us the geometric stru
 
 This is a pragmatic, interventionist program: we learn about internals by seeing which interventions *work*. An adapter that transfers where others fail reveals something real about the geometry of the representation. Below, we catalog each major PEFT method as a hypothesis, extract pseudocode for the intervention, and weigh the evidence.
 
-### Evidence hierarchy
+### Evidence scoring
 
-We grade evidence on a rough scale:
+We grade evidence on independent dimensions. Each method gets points for the dimensions it satisfies:
 
-- Cherry-picked examples or ablations only
-- Custom benchmark (authors' own eval)
-- Parameter-efficient (nearly matches LoRA with fewer params) *
-- Beats LoRA on raw performance **
-- Beats SFT (full fine-tuning)! **!**
-- Data-efficient (works in few-shot, converges fast, or need less data) **!!**
-- Generalizes OOD **!!!**
+| Dim | Pts | Meaning |
+|-----|-----|------------------------------------------|
+| PE  | 1   | Parameter-efficient: competitive with full FT at <1% params |
+| BL  | 1   | Beats LoRA on raw performance at comparable budget |
+| BF  | 1   | Matches or beats full fine-tuning |
+| DE  | 1   | Data-efficient: faster convergence or works with less data |
+| OOD | 2   | Generalizes out-of-distribution |
+| WA  | 1   | Widely adopted: used as baseline by other papers |
+
+Total = sum of applicable dimensions (max 7). Higher = stronger evidence that the method's structural hypothesis is correct.
 
 ---
 
@@ -51,7 +54,7 @@ def lora_forward(x, W, A, B, α, r):
 
 **Evidence:** Parameter-efficient (matches full FT with 0.01% params on GPT-3). Universal baseline adopted by the entire field. Authors demonstrate comparable performance to full fine-tuning on GPT-3 175B across multiple NLU benchmarks. Subsequent work ([Biderman et al. 2024](https://arxiv.org/abs/2405.09673)) finds LoRA underperforms full FT on harder tasks and larger scale -- the low-rank assumption holds for surface-level adaptation but breaks where deep weight restructuring is needed.
 
-**Grade:** * (parameter-efficient, universal baseline, but ceiling on hard tasks)
+**Grade:** PE+WA=2 (parameter-efficient, universal baseline, but ceiling on hard tasks)
 
 ---
 
@@ -79,7 +82,7 @@ def oft_forward(x, W, Q):
 
 However: the orthogonality constraint is rigid. It prevents magnitude changes entirely, limiting adaptation on tasks that require rescaling neuron importance. The hypothesis is strongest where you want to *rotate* representations without *distorting* them.
 
-**Grade:** * (parameter-efficient, strong on vision/generation tasks, limited on NLU where magnitude changes matter)
+**Grade:** PE=1 (parameter-efficient, strong on vision/generation, limited on NLU where magnitude changes matter)
 
 ---
 
@@ -103,7 +106,7 @@ def vera_forward(x, W, A, B, λ_d, λ_b):
 
 **Evidence:** 10x fewer trainable parameters than LoRA while maintaining competitive performance across diverse NLU benchmarks. The fact that *random* projections work at all is surprising and informative: it suggests that the JL lemma-style argument applies -- random subspaces approximately preserve the structure needed for adaptation, and per-layer gating is the real bottleneck.
 
-**Grade:** * (extreme parameter efficiency, competitive with LoRA, but the random-projection ceiling limits it on complex tasks)
+**Grade:** PE=1 (extreme parameter efficiency, competitive with LoRA, random-projection ceiling on complex tasks)
 
 ---
 
@@ -129,7 +132,7 @@ def dora_forward(x, W, A, B, m, α):
 
 **Evidence:** Authors analyze full FT weight updates and find they exhibit distinct magnitude vs. direction patterns that LoRA misses. DoRA consistently outperforms LoRA on LLaMA (commonsense reasoning), LLaVA (visual instruction tuning), and VL-BART (image/video-text), across multiple scales. No additional inference overhead (magnitudes merge). Has become a widely-adopted LoRA variant and default in many pipelines.
 
-**Grade:** ** (beats LoRA on raw performance across multiple domains, now a standard strong baseline)
+**Grade:** PE+BL+WA=3 (beats LoRA across multiple domains, now a standard strong baseline)
 
 *Implications:* The magnitude/direction decomposition reveals something about how full FT works internally. Weight updates are not just "adding stuff" -- they redistribute energy across neurons (magnitude) independently of rotating their selectivity (direction). This connects to the neuroscience intuition that gain modulation and selectivity tuning are separate mechanisms.
 
@@ -158,11 +161,11 @@ def delora_forward(x, W, A, B, λ, r, w_norm):
 
 The key insight: $\Delta W = B \cdot \text{diag}\left(\frac{\lambda}{r \cdot \|a_i\| \cdot \|b^j\|}\right) \cdot A$. Each rank-1 outer product $b_i a_i^\top$ is normalized to unit norm, then scaled by $\lambda_i / r$. The angular component (which direction in weight space to move) trains freely; the radial component (how far) is controlled by $\lambda$.
 
-**Evidence:** DeLoRA matches or surpasses LoRA, DoRA, and ETHER on subject-driven generation (DreamBooth), NLU (GLUE), and instruction tuning (LLaMA), while showing much better robustness to learning rate and training duration. The bounded deviation prevents catastrophic overwriting that plagues LoRA at high LR. Same authors as ETHER (Bini, Girrbach, Akata); the DeLoRA -> ETHER -> AntiPaSTO design lineage is clear even though AntiPaSTO (Clark, 2025) is by a different author.
+**Evidence:** DeLoRA matches or surpasses LoRA, DoRA, and ETHER on subject-driven generation (DreamBooth), NLU (GLUE), and instruction tuning (LLaMA), while showing much better robustness to learning rate and training duration. The bounded deviation prevents catastrophic overwriting that plagues LoRA at high LR. Same authors as ETHER (Bini, Girrbach, Akata), extending their work on direction/strength decoupling.
 
-**Grade:** ** (beats LoRA on robustness and competitive/better on performance; ICLR 2025)
+**Grade:** PE+BL=2 (beats LoRA on robustness and competitive on performance; ICLR 2025)
 
-*Implications:* The strength/direction decoupling is the conceptual ancestor of AntiPaSTO's steering approach. If you can control deviation strength independently, you can set $\lambda = \pm 1$ for bidirectional steering. The normalization also means gradient updates drive angular learning only -- the optimizer doesn't waste capacity fighting magnitude dynamics. Predictions: methods that explicitly decouple direction from strength will systematically show better OOD transfer, because the direction captures *what* to change while the strength captures *how much*, and only the former should be task-invariant.
+*Implications:* The strength/direction decoupling means gradient updates drive angular learning only -- the optimizer doesn't waste capacity fighting magnitude dynamics. Predictions: methods that explicitly decouple direction from strength will systematically show better OOD transfer, because the direction captures *what* to change while the strength captures *how much*, and only the former should be task-invariant.
 
 ---
 
@@ -191,7 +194,7 @@ The decomposition: $W = \underbrace{U_{:r} S_{:r} V_{:r}^\top}_{\text{adapter (l
 
 **Evidence:** PiSSA consistently outperforms LoRA across 11 models (184M--70B) on 5 NLG and 8 NLU tasks under identical setups. Gemma-7B on GSM8K: PiSSA 77.7% vs LoRA 74.5%. QPiSSA (quantized) on LLaMA-3-70B GSM8K: 86.05% vs QLoRA 81.73%. Faster convergence because the optimizer starts in the high-signal subspace. The initialization cost is negligible (fast SVD, a few seconds).
 
-**Grade:** ** (consistently beats LoRA, fast SVD init is near-free, NeurIPS 2024)
+**Grade:** PE+BL+BF+DE=4 (beats LoRA, approaches/beats full FT, faster convergence, NeurIPS 2024)
 
 *Implications:* PiSSA tells us something crucial about which weight-space directions matter: the top singular directions encode the most task-relevant structure. This is the "principal components carry the signal" hypothesis. It also suggests that LoRA's random init wastes early training steps re-discovering what SVD gives you for free. Connects to the broader question: is model adaptation about modifying the dominant signal or the residual noise? PiSSA says: the signal, always the signal.
 
@@ -223,7 +226,7 @@ The key: $\Delta W = \sum_{t} c_t \cdot u_{i_t} v_{j_t}^\top$, where $u_i, v_j$ 
 
 **Evidence:** SVFT recovers up to 96% of full fine-tuning performance with only 0.006--0.25% of parameters, outperforming LoRA/DoRA/BOFT which only recover 85% with 0.03--0.8% of params. Strong results on language (GLUE, commonsense reasoning) and vision benchmarks. The weight-dependent structure is the key differentiator.
 
-**Grade:** ** (beats LoRA/DoRA on the performance/parameter tradeoff, weight-aware structure)
+**Grade:** PE+BL=2 (beats LoRA/DoRA on performance/parameter tradeoff, weight-aware structure)
 
 *Implications:* SVFT is the purest test of "does the model's own SVD basis define the right intervention space?" The answer appears to be yes: learning just coefficients over the model's own singular vectors is far more efficient than learning new arbitrary directions. This provides direct evidence that these singular vectors aren't arbitrary artifacts but encode *meaningful* computational directions. If combined with PiSSA's "top components matter most," we get a clear picture: the SVD basis is the natural coordinate system, and the singular values are the knobs.
 
@@ -257,9 +260,9 @@ $$W' = U (\Sigma + \Delta\Sigma) \, G_k \, V^\top$$
 
 Only $k(k-1)/2 + k$ parameters (skew-symmetric entries + singular value shifts). Uses Cayley-Neumann approximation for efficiency.
 
-**Evidence:** SSVD achieves comparable performance to LoRA, DoRA, PiSSA, VeRA, and SVFT on domain-shifted ASR (child speech, dialectal variation) across 0.1B--2B models, with significantly fewer trainable parameters. On OWSM-1B: SSVD matches LoRA WER with 10M fewer params. The gap grows with model scale, suggesting the asymmetric hypothesis becomes *more* valid as models get larger.
+**Evidence:** SSVD achieves comparable performance to LoRA, DoRA, PiSSA, VeRA, and SVFT on domain-shifted ASR (child speech, dialectal variation) across 0.1B--2B models, with significantly fewer trainable parameters. On OWSM-1B: SSVD matches LoRA WER with 10M fewer params. At larger scales, a convergence hierarchy emerges: SSVD > PiSSA > DoRA > LoRA. The gap grows with model scale, suggesting the asymmetric hypothesis becomes *more* valid as models get larger.
 
-**Grade:** ** (matches LoRA with fewer params on domain-shifted ASR, approaches full FT)
+**Grade:** PE+BL+DE=3 (matches/beats LoRA with fewer params on domain-shifted ASR, faster convergence at scale)
 
 *Implications:* SSVD's asymmetric treatment of U vs V is novel and deeply informative. It says: the model's "output vocabulary" (left singular vectors = what abstract features get produced) is already correct and should be preserved. Only the "input receptive fields" (right singular vectors = how raw features map into the abstract space) need updating for domain shift. This is exactly the right inductive bias for acoustic adaptation (accents change the input distribution, not the semantic targets). Predictions: this asymmetry should also work for visual domain adaptation (camera changes, lighting) but fail for tasks that require redefining the output space (new task types, new label semantics).
 
@@ -287,7 +290,7 @@ Merge into weights: $W_{\text{merged}} = W \odot \lambda$ (element-wise scaling 
 
 **Evidence:** Authors claim (IA)3 with T0-3B outperforms ICL with GPT-3 175B on Super-NaturalInstructions while being orders of magnitude cheaper. Competitive with LoRA on RAFT leaderboard (rank 2 vs 3) with far fewer params. Strong on T5-family models. However, scaling-only methods have a clear expressivity ceiling: they cannot introduce new feature interactions, only reweight existing ones.
 
-**Grade:** * (parameter-efficient, strong on T5-family, but expressivity-limited compared to LoRA/DoRA)
+**Grade:** PE=1 (parameter-efficient, strong on T5-family, expressivity-limited compared to LoRA/DoRA)
 
 *Implications:* IA3's success tells us that a surprisingly large fraction of "task adaptation" is just reweighting. The pretrained model already computes many useful features; the bottleneck is which ones to attend to for a given task, not computing new features from scratch. This connects to the neuroscience concept of "gain modulation" -- neurons don't change their tuning curves, just their amplitude. The limitation is equally informative: IA3 struggles on tasks requiring novel feature combinations, confirming that some adaptations genuinely require new weight-space directions, not just rescaling.
 
@@ -319,7 +322,7 @@ Applied element-wise (no matrix multiply needed at inference). Merges into weigh
 
 **Evidence:** ROAD is the only PEFT method besides LoRA that supports mixed adapter batches (different adapters for different samples in the same batch). Authors claim competitive with LoRA on standard benchmarks. The explicit angle/magnitude decoupling makes it ideal for contrastive steering: scale only $\alpha$ for bidirectional control while preserving learned rotation directions $\theta$.
 
-**Grade:** * (parameter-efficient, clean decoupling, competitive with LoRA, but limited published benchmarks)
+**Grade:** PE=1 (parameter-efficient, clean decoupling, competitive with LoRA, limited published benchmarks)
 
 *Implications:* ROAD's decoupling of angle from magnitude is the cleanest formulation of the "direction vs strength" principle that also appears in DeLoRA and DoRA. The 2D rotation structure connects to RoPE (rotary position embeddings) -- both use paired rotations in subspaces, suggesting this is a natural symmetry of transformer representations. For steering applications, ROAD's explicit $\alpha$ parameter is the most interpretable knob: $\alpha = 1$ is identity, $\alpha > 1$ amplifies, $\alpha < 1$ attenuates, $\alpha = -1$ reverses.
 
@@ -362,13 +365,13 @@ $$W'(\alpha) = U \, \text{diag}(S + \alpha \Delta S) \, R_v(\alpha) \, V^\top + 
 
 where $R_v(\alpha) = (I - \alpha A/2)^{-1}(I + \alpha A/2)$ is the Cayley transform of skew-symmetric $A$. Only $r(r-1)/2 + r$ learned parameters per layer.
 
-**Evidence:** AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using Gemma-3-1B. Maintains bidirectional control ($\alpha = \pm 1$) where prompting triggers refusal. Trains with only 800 contrastive word pairs (no preference labels). Transfers out-of-distribution from template sentences to real ethical dilemmas. The OOD transfer is the strongest evidence: the SVD rotation basis learned on simple templates captures something causally relevant about the model's honesty computations.
+**Evidence:** AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using Gemma-3-1B. Maintains bidirectional control ($\alpha = \pm 1$) where prompting triggers refusal. Trains with only 800 contrastive word pairs (no preference labels). Transfers out-of-distribution from template sentences to real ethical dilemmas. The OOD transfer suggests the SVD rotation basis captures something causally relevant about the model's honesty computations.
 
-**Grade:** **!!! (generalizes OOD, bidirectional control, minimal supervision)
+**Grade:** PE+DE+OOD=4 (OOD transfer from templates to real dilemmas, trains on 800 pairs, bidirectional control)
 
 *Caveat:* Primary evidence is on models up to 4B parameters. The paper notes larger models "need further exploration" and results show high seed variance. The OOD transfer claim is strong but narrow (one trait, one evaluation benchmark).
 
-*Implications:* AntiPaSTO sits at the apex of the hypothesis arc traced through this catalog. It synthesizes: (1) PiSSA's "principal SVD components carry the signal," (2) SSVD's "rotate input-space singular vectors, preserve output-space," (3) DeLoRA's "decouple direction from strength," and (4) OFT's "Cayley transforms for exact orthogonality." The OOD generalization from templates to real dilemmas is the strongest validation that the SVD manifold is the *right* coordinate system for behavioral interventions -- not just an efficient parameterization, but a reflection of how the model actually structures its computations. The antiparallel property ($+\alpha$ and $-\alpha$ produce opposite effects) is a natural consequence of rotational symmetry: if the model's behavioral features live on a manifold, then small rotations in opposite directions should produce opposite shifts. This is the geometric version of the linear representation hypothesis.
+*Implications:* Synthesizes PiSSA's SVD initialization, SSVD's input-space rotation, DeLoRA's direction/strength decoupling, and OFT's Cayley parameterization. The OOD transfer from templates to real dilemmas suggests the SVD manifold is causally relevant, not just efficient. The antiparallel property ($+\alpha$ and $-\alpha$ produce opposite effects) is a natural consequence of rotational symmetry. Caveat: single-author, one trait, high seed variance; would be more confident with independent replication.
 
 ---
 
@@ -397,7 +400,7 @@ def prune_step(P, Λ, Q, budget):
 
 **Evidence:** Authors claim AdaLoRA achieves comparable or better performance than LoRA with 30-50% fewer total parameters on DeBERTaV3-base across NLU tasks. The adaptive rank allocation concentrates budget on query/value projections and early/late layers. Orthogonal regularization on P, Q prevents degenerate solutions. However, the pruning adds training complexity and the final rank pattern is model/task-specific, limiting transferability of the insight.
 
-**Grade:** * (parameter-efficient, smarter budget allocation, but added complexity for modest gains)
+**Grade:** PE=1 (parameter-efficient, smarter budget allocation, added complexity for modest gains)
 
 ---
 
@@ -423,7 +426,7 @@ Each butterfly layer has $d/2$ independent $2\times2$ rotation blocks arranged i
 
 **Evidence:** BOFT matches or exceeds OFT performance on DreamBooth and ControlNet with 2-4x fewer parameters. Authors demonstrate it preserves hyperspherical energy like OFT. The butterfly structure provides a principled trade-off between expressiveness and parameter count. Strong on vision/generation tasks where semantic preservation matters. ICLR 2024 acceptance validates the contribution.
 
-**Grade:** * (strict improvement over OFT in parameter efficiency, same hypothesis, ICLR 2024)
+**Grade:** PE=1 (strict improvement over OFT in parameter efficiency, same hypothesis, ICLR 2024)
 
 ---
 
@@ -450,7 +453,7 @@ def goft_forward(x, W, θ_list, pairs):
 
 **Evidence:** Authors claim GOFT outperforms OFT and BOFT on LLaMA-2-7B SFT (MT-Bench, AlpacaEval), DreamBooth, and offline RL tasks while using significantly fewer parameters. The parallel rotation strategy achieves $O(\log d)$ sparse matrix multiplication. ICML 2024 acceptance. The Givens decomposition is mathematically elegant and provably equivalent to full orthogonal transformations.
 
-**Grade:** * (most parameter-efficient orthogonal method, strong results, ICML 2024)
+**Grade:** PE=1 (most parameter-efficient orthogonal method, strong results, ICML 2024)
 
 ---
 
@@ -478,7 +481,7 @@ Each reflection flips the space across a hyperplane. Composing $r$ of them gives
 
 **Evidence:** Authors demonstrate HRA achieves competitive or better results than LoRA and OFT on LLaMA fine-tuning and image generation. The theoretical equivalence between Householder chains and adaptive low-rank updates is the main contribution: same expressiveness as rank-$r$ LoRA with guaranteed orthogonality. Regularization on reflection plane orthogonality improves stability.
 
-**Grade:** * (bridges orthogonal and low-rank paradigms, competitive performance)
+**Grade:** PE=1 (bridges orthogonal and low-rank paradigms, competitive performance)
 
 *Implications:* HRA reveals that the "low-rank vs orthogonal" dichotomy is a false one. A chain of $r$ Householder reflections is *both* orthogonal *and* equivalent to a rank-$r$ perturbation. This means LoRA's success (low rank works) and OFT's success (orthogonality works) are compatible: the effective adaptation might be low-rank *and* approximately orthogonal simultaneously. If true, the right constraint isn't "low rank" or "orthogonal" alone, but "low-rank orthogonal" -- small rotations that stay on the Stiefel manifold.
 
@@ -506,7 +509,7 @@ def randlora_forward(x, W, A, B_list, Λ_list, Γ_list):
 
 **Evidence:** RandLoRA outperforms LoRA as parameter budget expands, while remaining parameter-efficient. DinoV2, CLIP, and LLaMA-3-8B experiments show LoRA hits a rank ceiling (increasing rank has diminishing returns) while RandLoRA continues to improve. Loss landscape analysis shows RandLoRA's local minima are closer to full fine-tuning's. ICLR 2025.
 
-**Grade:** * (full-rank with learned scalings only, ICLR 2025, strong on vision-language)
+**Grade:** PE=1 (full-rank with learned scalings only, ICLR 2025, strong on vision-language)
 
 ---
 
@@ -531,7 +534,7 @@ def fourierft_forward(x, W, coeffs, freq_indices, shape):
 
 **Evidence:** Authors claim FourierFT achieves higher compression than LoRA by exploiting frequency-domain sparsity. Competitive with LoRA on GLUE and commonsense reasoning using fewer parameters. ICML 2024 acceptance. The spectral sparsity hypothesis is interesting but the evidence for *why* weight changes should be low-frequency is largely empirical.
 
-**Grade:** * (novel parameterization, ICML 2024, competitive compression)
+**Grade:** PE=1 (novel parameterization, ICML 2024, competitive compression)
 
 ---
 
@@ -554,7 +557,7 @@ def c3a_forward(x, W, c):
 
 **Evidence:** Authors claim C3A achieves higher effective rank than LoRA with similar parameter count and compute. Competitive on GLUE, commonsense reasoning, and instruction tuning. ACL 2025 acceptance. The FFT-based computation is genuinely efficient. However, the assumption of circulant structure in weight updates is strong and may not hold universally.
 
-**Grade:** * (full-rank with fewer params, ACL 2025, but circulant assumption is strong)
+**Grade:** PE=1 (full-rank with fewer params, ACL 2025, circulant assumption is strong)
 
 ---
 
@@ -576,7 +579,7 @@ def loha_forward(x, W, A1, B1, A2, B2):
 
 **Evidence:** Part of the LyCORIS toolkit. Authors claim LoHa achieves richer expressiveness than LoRA for the same parameter count, particularly for image generation (Stable Diffusion fine-tuning) where complex spatial interactions matter. The Hadamard product inherently captures pairwise feature interactions that additive low-rank matrices cannot.
 
-**Grade:** * (richer than LoRA for vision, part of LyCORIS ecosystem)
+**Grade:** PE=1 (richer than LoRA for vision, part of LyCORIS ecosystem)
 
 ---
 
@@ -598,7 +601,7 @@ def lokr_forward(x, W, A, B):
 
 **Evidence:** Part of LyCORIS. Kronecker structure is especially effective for convolutional layers where the weight tensor naturally factorizes across spatial and channel dimensions. Compact parameterization for large weight matrices. Less commonly used for LLMs where the spatial structure assumption doesn't hold as well.
 
-**Grade:** * (efficient for conv layers, niche use case for transformers)
+**Grade:** PE=1 (efficient for conv layers, niche use case for transformers)
 
 ---
 
@@ -621,7 +624,7 @@ def miss_forward(x, W, shared_shards, scores):
 
 **Evidence:** Successor to Bone (deprecated). PEFT benchmark comparison shows "excellent results" in both performance and memory efficiency. Adaptive rank allocation via shard scoring. Reduced memory compared to full per-layer LoRA matrices. However, the shard sharing mechanism adds implementation complexity.
 
-**Grade:** * (memory-efficient, good benchmark results per PEFT team)
+**Grade:** PE=1 (memory-efficient, good benchmark results per PEFT team)
 
 ---
 
@@ -646,7 +649,7 @@ def vblora_forward(x, W, bank, indices, coeffs):
 
 **Evidence:** Authors claim VBLoRA uses 0.4% of LoRA's parameters while maintaining comparable performance. NeurIPS 2024 acceptance. The extreme compression is remarkable and suggests that adapter weight diversity across layers is much lower than assumed -- most of the information is in *which* vectors to select and *how much* of each, not in the vectors themselves.
 
-**Grade:** * (extreme compression, NeurIPS 2024, intriguing theoretical implications)
+**Grade:** PE=1 (extreme compression, NeurIPS 2024, intriguing theoretical implications)
 
 ---
 
@@ -669,7 +672,7 @@ def shira_forward(x, W, mask, ΔW_sparse):
 
 **Evidence:** Authors claim SHiRA outperforms LoRA especially on concept loss when using multiple adapters (critical for diffusion model fine-tuning). Sparse adapters are cheaper to switch between than LoRA. NeurIPS 2024 Workshop. The importance-scoring approach connects to structured pruning literature.
 
-**Grade:** * (sparse high-rank, good multi-adapter properties, workshop paper)
+**Grade:** PE=1 (sparse high-rank, good multi-adapter properties, workshop paper)
 
 ---
 
@@ -690,7 +693,7 @@ def ln_tuning_forward(x, W_frozen, γ, β):
 
 **Evidence:** Authors claim LN Tuning with ~0.5% trainable parameters can match LoRA performance on some NLU tasks. The extreme simplicity is informative: if tuning only normalization suffices, then much of "task adaptation" is really "distribution matching." Less effective on tasks requiring new feature representations rather than feature rescaling.
 
-**Grade:** * (extremely few params, competitive on some tasks, limited expressiveness)
+**Grade:** PE=1 (extremely few params, competitive on some tasks, limited expressiveness)
 
 ---
 
@@ -712,7 +715,7 @@ Variants: Prefix Tuning adds prompts to key/value projections at every layer. P-
 
 **Evidence:** Prompt Tuning scales with model size: at T5-XXL (11B), it matches full fine-tuning with 0.01% parameters. However, it struggles on smaller models and hard sequence labeling tasks. Prefix Tuning achieves comparable results with ~0.1% parameters on generation tasks. The prompt paradigm is fundamentally different from weight adaptation: it modifies the *input* rather than the *computation*. When it works, it suggests the model already has the capability; when it fails, it reveals genuine capability gaps.
 
-**Grade:** * (scales with model size, conceptually different from weight methods)
+**Grade:** PE=1 (scales with model size, conceptually different from weight methods)
 
 ---
 
@@ -734,7 +737,7 @@ def xlora_forward(x, W, adapters, gating_net):
 
 **Evidence:** X-LoRA achieves better composite performance than individual LoRAs by dynamically routing through appropriate expert adapters. Polytropon demonstrates cross-task transfer via shared skill libraries. The compositionality assumption is powerful but adds routing overhead and complexity. More suited to multi-task deployment than single-task fine-tuning.
 
-**Grade:** * (compositional multi-task, routing overhead)
+**Grade:** PE=1 (compositional multi-task, routing overhead)
 
 ---
 
@@ -754,11 +757,11 @@ def ether_forward(x, W, R):
     return (R @ W) @ x                              # fixed-strength rotation
 ```
 
-**Evidence:** Bini, Girrbach, Akata (same authors as DeLoRA; AntiPaSTO by Clark builds on their design lineage). ETHER demonstrates that fixed-strength orthogonal transformations can achieve competitive task adaptation while preventing catastrophic forgetting. The bounded deviation is both a feature (robustness) and a limitation (ceiling on complex tasks). ETHER's constraints motivated DeLoRA's more flexible design, which in turn motivated AntiPaSTO's steering architecture.
+**Evidence:** Bini, Girrbach, Akata (same authors as DeLoRA). ETHER demonstrates that fixed-strength orthogonal transformations can achieve competitive task adaptation while preventing catastrophic forgetting. The bounded deviation is both a feature (robustness) and a limitation (ceiling on complex tasks). ETHER's constraints motivated DeLoRA's more flexible direction/strength decoupling.
 
-**Grade:** * (robust fixed-strength rotations, foundational for DeLoRA/AntiPaSTO)
+**Grade:** PE=1 (robust fixed-strength rotations, foundational for DeLoRA)
 
-*Implications:* ETHER represents the "minimal intervention" extreme of the orthogonal hypothesis. By showing that *bounded* rotations work for many tasks, it establishes a baseline: how much deviation from pretrained weights is actually needed? The answer appears to be "less than you think for behavioral steering, more than you think for complex task adaptation." This informed the DeLoRA/AntiPaSTO progression: decouple strength from direction globally, then make strength a continuous knob.
+*Implications:* ETHER represents the "minimal intervention" extreme of the orthogonal hypothesis. By showing that *bounded* rotations work for many tasks, it establishes a baseline: how much deviation from pretrained weights is actually needed? The answer appears to be "less than you think for behavioral steering, more than you think for complex task adaptation." This informed DeLoRA's key insight: decouple strength from direction, and let each evolve independently.
 
 ---
 
@@ -784,7 +787,7 @@ def oftv2_forward(x, W, Q):
 
 **Evidence:** Authors claim 10x faster training and 3x lower GPU memory than OFT without performance loss. Supports quantized foundation models and outperforms QLoRA in training stability. EMNLP 2025 acceptance. The key insight is purely computational: the same mathematical operation (orthogonal rotation) can be implemented much more efficiently in input-centric form.
 
-**Grade:** * (same hypothesis as OFT, much more practical)
+**Grade:** PE=1 (same hypothesis as OFT, much more practical)
 
 ---
 
