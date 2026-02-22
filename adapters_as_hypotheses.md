@@ -2,7 +2,7 @@
 
 *What does each PEFT method believe about transformer internals?*
 
-Note: This is an AI generated and guided literative survey, it does not speak for me but I share it in the hope that it is usefull, and I do believe these these exist and give us insight about how best to intervene in transformers
+*Disclaimer: This is an AI-generated and AI-guided iterative survey. It does not speak for me, but I share it in the hope that it is useful. I do believe these themes exist and give us insight about how best to intervene in transformers.*
 
 ## Why care?
 
@@ -22,14 +22,14 @@ These three claims are the main takeaway. The catalog below is the evidence.
 
 We grade evidence on independent dimensions. Each method gets points for the dimensions it satisfies:
 
-| Dim | Pts | Meaning |
-|-----|-----|------------------------------------------|
+| Dim | Pts | Meaning                                                     |
+| --- | --- | ----------------------------------------------------------- |
 | PE  | 1   | Parameter-efficient: competitive with full FT at <1% params |
-| BL  | 1   | Beats LoRA on raw performance at comparable budget |
-| BF  | 1.5 | Matches or beats full fine-tuning |
-| DE  | 1.5 | Data-efficient: faster convergence or works with less data |
-| OOD | 2   | Generalizes out-of-distribution |
-| WA  | 1   | Widely adopted: used as baseline by many other papers |
+| BL  | 1   | Beats LoRA on raw performance at comparable budget          |
+| BF  | 1.5 | Matches or beats full fine-tuning                           |
+| DE  | 1.5 | Data-efficient: faster convergence or works with less data  |
+| OOD | 2   | Generalizes out-of-distribution                             |
+| WA  | 1   | Widely adopted: used as baseline by many other papers       |
 
 Total = sum of applicable dimensions (max 8). Higher = stronger evidence that the method's structural hypothesis is correct.
 
@@ -190,7 +190,11 @@ def pissa_forward(x, W_res, A, B):
     return (W_res + A @ B) @ x                      # same as LoRA at inference
 ```
 
-The decomposition: $W = \underbrace{U_{:r} S_{:r} V_{:r}^\top}_{\text{adapter (learned)}} + \underbrace{U_{r:} S_{r:} V_{r:}^\top}_{\text{residual (frozen)}}$. LoRA updates noise; PiSSA updates the signal.
+The decomposition:
+
+$$W = \underbrace{U_{:r} \, S_{:r} \, V_{:r}^\top}_{\text{adapter (learned)}} + \underbrace{U_{r:} \, S_{r:} \, V_{r:}^\top}_{\text{residual (frozen)}}$$
+
+LoRA updates noise; PiSSA updates the signal.
 
 **Evidence:** PiSSA consistently outperforms LoRA across 11 models (184M--70B) on 5 NLG and 8 NLU tasks under identical setups. Gemma-7B on GSM8K: PiSSA 77.7% vs LoRA 74.5%. QPiSSA (quantized) on LLaMA-3-70B GSM8K: 86.05% vs QLoRA 81.73%. Faster convergence because the optimizer starts in the high-signal subspace. The initialization cost is negligible (fast SVD, a few seconds).
 
@@ -913,6 +917,48 @@ The key: instead of $W' = W + \Delta W$, apply $h' = h + R^\top (R h + b - R h)$
 
 ---
 
+## Scorecard
+
+Sorted by evidence strength (max 8). See [scoring legend](#evidence-scoring) above.
+
+|    # | Method        | Score | Breakdown   | Theme            |
+| ---: | ------------- | ----: | ----------- | ---------------- |
+|    6 | PiSSA         |   5.0 | PE+BL+BF+DE | SVD basis        |
+|    4 | DoRA          |   4.5 | PE+BL+BF+WA | dir/strength     |
+|   11 | AntiPaSTO*    |   4.5 | PE+DE+OOD   | SVD+rotation     |
+|   13 | BOFT          |   4.0 | PE+BF+DE    | orthogonal       |
+|    5 | DeLoRA        |   3.5 | PE+BL+DE    | dir/strength     |
+|    8 | SSVD          |   3.5 | PE+BL+DE    | SVD basis        |
+|   31 | CLOVER        |   3.5 | PE+BL+BF    | SVD+architecture |
+|   32 | PSOFT         |   3.5 | PE+BL+DE    | SVD+orthogonal   |
+|    2 | OFT           |   2.5 | PE+DE       | orthogonal       |
+|   16 | RandLoRA      |   2.5 | PE+BF       | full-rank        |
+|   17 | FourierFT     |   2.5 | PE+BF       | spectral         |
+|   21 | MiSS          |   2.5 | PE+DE       | sharing          |
+|   27 | ETHER         |   2.5 | PE+DE       | orthogonal       |
+|    1 | LoRA          |   2.0 | PE+WA       | low-rank         |
+|    7 | SVFT          |   2.0 | PE+BL       | SVD basis        |
+|   33 | ReFT          |   2.0 | PE+BL       | activations      |
+|    3 | VeRA          |   1.0 | PE          | gain control     |
+|    9 | IA3           |   1.0 | PE          | gain control     |
+|   10 | ROAD          |   1.0 | PE          | dir/strength     |
+|   12 | AdaLoRA       |   1.0 | PE          | low-rank         |
+|   14 | GOFT          |   1.0 | PE          | orthogonal       |
+|   15 | HRA           |   1.0 | PE          | orthogonal       |
+|   18 | C3A           |   1.0 | PE          | spectral         |
+|   19 | LoHa          |   1.0 | PE          | multiplicative   |
+|   20 | LoKr          |   1.0 | PE          | tensor product   |
+|   22 | VBLoRA        |   1.0 | PE          | sharing          |
+|   23 | SHiRA         |   1.0 | PE          | sparse           |
+|   24 | LN Tuning     |   1.0 | PE          | gain control     |
+|   25 | Prompt Tuning |   1.0 | PE          | prompts          |
+|   26 | Poly/X-LoRA   |   1.0 | PE          | mixture          |
+|   28 | OFTv2         |   1.0 | PE          | orthogonal       |
+
+\* own work -- read with appropriate skepticism
+
+---
+
 ## Themes: What the Evidence Tells Us
 
 Looking across all 33 methods, the successful adapters share a recipe: choose coordinates that align with pretrained structure, constrain updates to preserve that structure, and control update strength explicitly.
@@ -949,4 +995,4 @@ Before writing this catalog, I thought of adapters mainly as engineering trade-o
 - The gain-control insight predicts a rank ordering for "how much adapter expressivity does task X need?": distribution shift (gain control suffices) < instruction following (low-rank) < novel capabilities (full-rank or high-rank sparse). Confidence: 60%.
 - ReFT-style activation interventions will eventually beat weight-space adapters on parameter efficiency, but weight-space adapters will remain better for deployment (merging into weights). Confidence: 75%.
 
-**Conflict of interest:** The strongest OOD result in this catalog is my own work ([AntiPaSTO](https://arxiv.org/abs/2601.07473)). I've tried to grade it honestly, but read the evidence for it with appropriate skepticism. I developed it with the same insights in this document, so it's not entirely suprising that it fits well.
+**Conflict of interest:** The of the strongest OOD results in this catalog is my own work ([AntiPaSTO](https://arxiv.org/abs/2601.07473)). I've tried to grade it honestly, but read the evidence for it with appropriate skepticism. I developed it with the same insights in this document, so it's not entirely suprising that it fits well.
