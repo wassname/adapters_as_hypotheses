@@ -4,7 +4,7 @@
 
 ## Why care?
 
-We want to understand how transformers work. There are many approaches -- probing, ablation, SAEs -- but most of them *observe* rather than *intervene*. Probing finds representations that predict behavior, but high probe accuracy does not mean the model uses that representation ([Belinkov, 2022](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00254/43503)). CCS discovers latent knowledge but cannot intervene on it ([Burns et al., 2022](https://arxiv.org/abs/2212.03827)). Intervention shortcuts both problems: if modifying a representation reliably changes behavior, we have causal evidence of what we control ([Clark, 2025](https://arxiv.org/abs/2601.07473)).
+We want to understand how transformers work. There are many approaches -- probing, ablation, SAEs -- but most of them *observe* rather than *intervene*. Probing finds representations that predict behavior, but high probe accuracy does not mean the model uses that representation ([Belinkov, 2022](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00254/43503)). CCS discovers latent knowledge but cannot intervene on it ([Burns et al., 2022](https://arxiv.org/abs/2212.03827)). Intervention shortcuts both problems: if modifying a representation reliably changes behavior, we have causal evidence of what we control (I argued this in [AntiPaSTO](https://arxiv.org/abs/2601.07473)).
 
 There is an underappreciated source of exactly this kind of causal evidence: the PEFT adapter literature.
 
@@ -12,7 +12,7 @@ Each adapter constrains *how* you can update pretrained weights. When one adapte
 
 GDM's interpretability team recently pivoted toward "pragmatic interpretability" -- directly solving problems on the critical path to AGI going well, grounded in proxy tasks with empirical feedback ([Nanda et al., 2025](https://www.lesswrong.com/posts/StENzDcD3kpfGJssR/a-pragmatic-vision-for-interpretability)). Adapter benchmarks are precisely this: empirical feedback on which structural assumptions about transformer internals hold up under intervention.
 
-If the adapter generalizes out-of-distribution, that tells us the geometric structure it exploits is *causally relevant* to behavior, not merely correlated. As Clark ([2025](https://arxiv.org/abs/2601.07473)) puts it:
+If the adapter generalizes out-of-distribution, that tells us the geometric structure it exploits is *causally relevant* to behavior, not merely correlated. From my [AntiPaSTO paper](https://arxiv.org/abs/2601.07473):
 
 > Each adapter architecture encodes a claim about how to intervene in transformer internals. LoRA hypothesizes weight changes are low-rank. OFT hypothesizes orthogonal transformations preserve semantic structure. VeRA hypothesizes shared random projections plus learned scaling suffice. DeLoRA hypothesizes direction and magnitude should decouple. PiSSA hypothesizes principal components matter most. Our choice -- Cayley rotations of SVD singular vectors -- hypothesizes that the model's own learned basis defines the natural intervention manifold. Adapters that generalize out-of-distribution tell us which geometric structures are causally relevant to behavior, not merely correlated with it.
 
@@ -327,6 +327,8 @@ Applied element-wise (no matrix multiply needed at inference). Merges into weigh
 
 ## 11. AntiPaSTO -- Antiparallel Steering via SVD Rotations
 
+*Disclosure: this is my own work. I give it the highest grade here, so read the evidence with appropriate skepticism.*
+
 **Paper:** [Clark 2025](https://arxiv.org/abs/2601.07473)
 **Code:** [github.com/wassname/AntiPaSTO](https://github.com/wassname/AntiPaSTO)
 **Saved:** [docs/antipasto_antiparallel_steering.md](docs/antipasto_antiparallel_steering.md)
@@ -360,7 +362,7 @@ $$W'(\alpha) = U \, \text{diag}(S + \alpha \Delta S) \, R_v(\alpha) \, V^\top + 
 
 where $R_v(\alpha) = (I - \alpha A/2)^{-1}(I + \alpha A/2)$ is the Cayley transform of skew-symmetric $A$. Only $r(r-1)/2 + r$ learned parameters per layer.
 
-**Evidence:** Authors claim AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using Gemma-3-1B. Maintains bidirectional control ($\alpha = \pm 1$) where prompting triggers refusal. Trains with only 800 contrastive word pairs (no preference labels). Transfers out-of-distribution from template sentences to real ethical dilemmas. The OOD transfer is the strongest evidence: the SVD rotation basis learned on simple templates captures something causally relevant about the model's honesty computations.
+**Evidence:** AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using Gemma-3-1B. Maintains bidirectional control ($\alpha = \pm 1$) where prompting triggers refusal. Trains with only 800 contrastive word pairs (no preference labels). Transfers out-of-distribution from template sentences to real ethical dilemmas. The OOD transfer is the strongest evidence: the SVD rotation basis learned on simple templates captures something causally relevant about the model's honesty computations.
 
 **Grade:** **!!! (generalizes OOD, bidirectional control, minimal supervision)
 
