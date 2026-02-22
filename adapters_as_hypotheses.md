@@ -6,13 +6,15 @@
 
 We want to understand how transformers work. There are many approaches -- probing, ablation, SAEs -- but most of them *observe* rather than *intervene*. Probing finds representations that predict behavior, but high probe accuracy does not mean the model uses that representation ([Belinkov, 2022](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00254/43503)). CCS discovers latent knowledge but cannot intervene on it ([Burns et al., 2022](https://arxiv.org/abs/2212.03827)). Intervention shortcuts both problems: if modifying a representation reliably changes behavior, we have causal evidence of what we control (I argued this in [AntiPaSTO](https://arxiv.org/abs/2601.07473)).
 
+<!-- TODO is ths all really relevent for the intro and audience, seems long and not to the point, is the lesswrong one better? -->
+
 There is an underappreciated source of exactly this kind of causal evidence: the PEFT adapter literature.
 
-Each adapter constrains *how* you can update pretrained weights. When one adapter architecture outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winning method's structural assumptions are supported as a better description of the weight manifold. This is a natural experiment running across hundreds of papers, and almost nobody reads it as science about representations.
+Each adapter constrains *how* you can update pretrained weights. When one adapter architecture outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's structural assumptions get stronger support as a description of the weight manifold. This is a natural experiment running across many papers, and it is still underused as evidence about representations.
 
 GDM's interpretability team recently pivoted toward "pragmatic interpretability" -- directly solving problems on the critical path to AGI going well, grounded in proxy tasks with empirical feedback ([Nanda et al., 2025](https://www.lesswrong.com/posts/StENzDcD3kpfGJssR/a-pragmatic-vision-for-interpretability)). Adapter benchmarks are precisely this: empirical feedback on which structural assumptions about transformer internals hold up under intervention.
 
-If the adapter generalizes out-of-distribution, that tells us the geometric structure it exploits is *causally relevant* to behavior, not merely correlated. From my [AntiPaSTO paper](https://arxiv.org/abs/2601.07473):
+If an adapter generalizes out-of-distribution, that is stronger evidence that the geometric structure it exploits is causally relevant to behavior, not merely correlated. From my [AntiPaSTO paper](https://arxiv.org/abs/2601.07473):
 
 > Each adapter architecture encodes a claim about how to intervene in transformer internals. LoRA hypothesizes weight changes are low-rank. OFT hypothesizes orthogonal transformations preserve semantic structure. VeRA hypothesizes shared random projections plus learned scaling suffice. DeLoRA hypothesizes direction and magnitude should decouple. PiSSA hypothesizes principal components matter most. Our choice -- Cayley rotations of SVD singular vectors -- hypothesizes that the model's own learned basis defines the natural intervention manifold. Adapters that generalize out-of-distribution tell us which geometric structures are causally relevant to behavior, not merely correlated with it.
 
@@ -29,7 +31,7 @@ We grade evidence on independent dimensions. Each method gets points for the dim
 | BF  | 1.5 | Matches or beats full fine-tuning |
 | DE  | 1.5 | Data-efficient: faster convergence or works with less data |
 | OOD | 2   | Generalizes out-of-distribution |
-| WA  | 1   | Widely adopted: used as baseline by other papers |
+| WA  | 1   | Widely adopted: used as baseline by many other papers |
 
 Total = sum of applicable dimensions (max 8). Higher = stronger evidence that the method's structural hypothesis is correct.
 
@@ -52,7 +54,7 @@ def lora_forward(x, W, A, B, α, r):
     return (W + scaling * ΔW) @ x     # equivalently: W(x) + scaling * B(A(x))
 ```
 
-**Evidence:** Parameter-efficient (matches full FT with 0.01% params on GPT-3). Universal baseline adopted by the entire field. Authors demonstrate comparable performance to full fine-tuning on GPT-3 175B across multiple NLU benchmarks. Subsequent work ([Biderman et al. 2024](https://arxiv.org/abs/2405.09673)) finds LoRA underperforms full FT on harder tasks and larger scale -- the low-rank assumption holds for surface-level adaptation but breaks where deep weight restructuring is needed.
+**Evidence:** Parameter-efficient (matches full FT with 0.01% params on GPT-3). One of the most common baselines in PEFT. Authors demonstrate comparable performance to full fine-tuning on GPT-3 175B across multiple NLU benchmarks. Subsequent work ([Biderman et al. 2024](https://arxiv.org/abs/2405.09673), [saved](docs/biderman_lora_limitations.md)) finds LoRA underperforms full FT on harder tasks and larger scale -- the low-rank assumption holds for surface-level adaptation but weakens when deeper restructuring is needed.
 
 **Grade:** PE+WA=2 (parameter-efficient, universal baseline, but ceiling on hard tasks)
 
@@ -130,7 +132,7 @@ def dora_forward(x, W, A, B, m, α):
     return scale * (W @ x) + scale * α * (B @ A @ x)
 ```
 
-**Evidence:** Authors analyze full FT weight updates and find they exhibit distinct magnitude vs. direction patterns that LoRA misses. DoRA consistently outperforms LoRA on LLaMA (commonsense reasoning), LLaVA (visual instruction tuning), and VL-BART (image/video-text), across multiple scales. No additional inference overhead (magnitudes merge). Has become a widely-adopted LoRA variant and default in many pipelines.
+**Evidence:** Authors analyze full FT weight updates and find distinct magnitude vs. direction patterns that LoRA misses. DoRA outperforms LoRA on LLaMA (commonsense reasoning), LLaVA (visual instruction tuning), and VL-BART (image/video-text) in their reported setups. No additional inference overhead (magnitudes merge). It is now a common LoRA-family baseline in many recent papers.
 
 **Grade:** PE+BL+BF+WA=4.5 (beats LoRA across multiple domains, QDoRA slightly outperforms full FT on LLaMA2-7B/LLaMA3-8B, standard strong baseline)
 
@@ -224,7 +226,7 @@ def svft_forward(x, W, U, Vt, indices, c):
 
 The key: $\Delta W = \sum_{t} c_t \cdot u_{i_t} v_{j_t}^\top$, where $u_i, v_j$ come from $W$'s SVD. Only the $c_t$ scalars are learned. Different sparsity patterns (band-diagonal, random, etc.) give different expressivity/efficiency tradeoffs.
 
-**Evidence:** SVFT recovers up to 96% of full fine-tuning performance with only 0.006--0.25% of parameters, outperforming LoRA/DoRA/BOFT which only recover 85% with 0.03--0.8% of params. Strong results on language (GLUE, commonsense reasoning) and vision benchmarks. The weight-dependent structure is the key differentiator.
+**Evidence:** SVFT reports up to 96% of full fine-tuning performance with only 0.006--0.25% of parameters, outperforming LoRA/DoRA/BOFT ranges reported in the paper. Results are strong on language (GLUE, commonsense reasoning) and vision benchmarks. The weight-dependent structure is the key differentiator.
 
 **Grade:** PE+BL=2 (beats LoRA/DoRA on performance/parameter tradeoff, weight-aware structure)
 
@@ -670,7 +672,7 @@ def shira_forward(x, W, mask, ΔW_sparse):
     return W_adapted @ x
 ```
 
-**Evidence:** Authors claim SHiRA outperforms LoRA especially on concept loss when using multiple adapters (critical for diffusion model fine-tuning). Sparse adapters are cheaper to switch between than LoRA. NeurIPS 2024 Workshop. The importance-scoring approach connects to structured pruning literature.
+**Evidence:** Authors report SHiRA outperforms LoRA especially on concept-loss-sensitive multi-adapter settings (critical for diffusion model fine-tuning). Sparse adapters are cheaper to switch between than LoRA. NeurIPS 2024 Workshop. The importance-scoring approach connects to structured pruning literature.
 
 **Grade:** PE=1 (sparse high-rank, good multi-adapter properties, workshop paper)
 
@@ -814,7 +816,9 @@ def oftv2_forward(x, W, Q):
 
 ## 31. CLOVER -- Cross-Layer Joint SVD Adaptation
 
-**Paper:** [Tang et al. 2024](https://arxiv.org/abs/2411.17426)
+**Paper:** [Meng, Tang, Jiang, Zhang 2024](https://arxiv.org/abs/2411.17426)
+**Code:** [github.com/fanxu-meng/CLOVER](https://github.com/fanxu-meng/CLOVER)
+**Saved:** [docs/clover_joint_svd.md](docs/clover_joint_svd.md)
 
 **Hypothesis:** Attention layers have *cross-layer redundancy* in their SVD structure. Rather than adapting Q, K, V, O projections independently, CLOVER performs joint SVD across paired attention matrices (Q-K and V-O), exploiting the shared singular subspace between layers that cooperate functionally. The weight matrices within a head are not independent -- they jointly define the attention computation, so their adaptation should be coupled.
 
@@ -841,7 +845,7 @@ def clover_forward(x, W_q, W_k, W_v, W_o, adapters):
     return attention(x, W_q + ΔW_q, W_k + ΔW_k, W_v + ΔW_v, W_o + ΔW_o)
 ```
 
-**Evidence:** Validated on SDXL (image generation), LLaMA-Vision (multimodal), and Whisper (speech). Beats LoRA by 7.6%, DoRA by 5.5%, PiSSA by 0.7% on average. The cross-layer coupling captures shared structure that per-matrix methods miss. The multimodal validation is notable -- works across text, vision, and audio modalities.
+**Evidence:** Authors report validation on SDXL (image generation), LLaMA-Vision (multimodal), and Whisper (speech), with average gains over LoRA (+7.6%), DoRA (+5.5%), and PiSSA (+0.7%) in their setup. The cross-layer coupling claim is plausible because Q-K and V-O are functionally paired. This result is strong but still from a single research group.
 
 **Grade:** PE+BL+BF=3.5 (beats LoRA and DoRA significantly; validated across 3 modalities)
 
@@ -851,7 +855,8 @@ def clover_forward(x, W_q, W_k, W_v, W_o, adapters):
 
 ## 32. PSOFT -- Principal Subspace Orthogonal Fine-Tuning
 
-**Paper:** [2025](https://arxiv.org/abs/2505.11235)
+**Paper:** [Wu et al. 2026](https://arxiv.org/abs/2505.11235)
+**Saved:** [docs/psoft_principal_subspace_oft.md](docs/psoft_principal_subspace_oft.md)
 
 **Hypothesis:** Combine PiSSA's SVD initialization with OFT's orthogonal constraint. After extracting the principal subspace via SVD, learn a Cayley rotation $R$ that operates *within* the frozen $U, V$ subspace. This is "OFT in SVD coordinates" -- preserving pairwise angles (OFT's insight) while working in the model's natural basis (PiSSA's insight). The rotation $R$ acts on the principal singular vectors, keeping the subspace orientation while rotating within it.
 
@@ -870,11 +875,11 @@ def psoft_forward(x, U_r, S_r, V_r, K, W_res):
     return (W_adapted + W_res) @ x                # + frozen residual
 ```
 
-**Evidence:** Authors claim 80% memory reduction vs standard OFT. Tested on 35 NLP and CV tasks. Combines the convergence benefits of SVD initialization (PiSSA) with the semantic preservation of orthogonal constraints (OFT). The Cayley parameterization ensures exact orthogonality without projection steps.
+**Evidence:** Authors report ~80% memory reduction vs OFT and broad evaluation across 35 NLP/CV tasks, while keeping performance competitive. This is a direct synthesis of PiSSA-style SVD initialization plus OFT-style Cayley-constrained rotations.
 
 **Grade:** PE+BL+DE=3.5 (memory-efficient, faster convergence from SVD init, beats LoRA on 35 tasks)
 
-*Implications:* PSOFT is the clearest synthesis of the SVD + orthogonal hypotheses. It shows that these two structural priors are *complementary*, not competing: SVD identifies *where* to intervene (principal subspace), orthogonality constrains *how* to intervene (rotations that preserve structure). The resulting method inherits both benefits. This supports the emerging picture that the "right" adapter is one that respects both the model's eigenbasis and the geometry of meaningful transformations within it.
+*Implications:* PSOFT combines two ideas that actually work: SVD tells you where to intervene (principal subspace), orthogonality constrains how (rotations that preserve structure). The method inherits benefits from both. This suggests the best adapters respect both the model's eigenbasis and the geometry of transformations within it.
 
 ---
 
@@ -882,6 +887,7 @@ def psoft_forward(x, U_r, S_r, V_r, K, W_res):
 
 **Paper:** [Wu, Arora, Wang et al. 2024](https://arxiv.org/abs/2404.03592)
 **Code:** [github.com/stanfordnlp/pyreft](https://github.com/stanfordnlp/pyreft)
+**Saved:** [docs/reft_representation_finetuning.md](docs/reft_representation_finetuning.md)
 
 **Hypothesis:** Adaptation should target *representations* (activations), not weights. Instead of modifying $W$, modify the hidden state $h$ at specific layers and positions via learned interventions. The model's weights are already fine; we just need to redirect its intermediate computations. This is the "activation steering" hypothesis taken to its limit: learn a linear intervention on hidden states at specific token positions.
 
@@ -901,7 +907,7 @@ def reft_forward(model, x, interventions):
 
 The key: instead of $W' = W + \Delta W$, apply $h' = h + R^\top (R h + b - R h)$ at specific (layer, position) pairs. The intervention is a learned affine transformation in a low-rank subspace of the hidden state.
 
-**Evidence:** ReFT is 15-65x more parameter-efficient than LoRA (only modifying hidden states at a few positions). Stanford NLP group, widely cited. Strong on instruction following, commonsense reasoning, and math. The activation-space intervention paradigm is fundamentally different from weight adaptation -- it operates in representation space rather than parameter space.
+**Evidence:** Authors report 15-65x parameter savings vs LoRA by intervening on hidden states at selected layer-position sites. Reported gains cover instruction following, commonsense reasoning, and NLU tasks in their benchmark suite. Since this is activation-space adaptation, comparisons with weight-space adapters are informative but not perfectly apples-to-apples.
 
 **Grade:** PE+BL=2 (15-65x more parameter-efficient than LoRA, beats LoRA on multiple benchmarks, distinct paradigm)
 
@@ -911,101 +917,27 @@ The key: instead of $W' = W + \Delta W$, apply $h' = h + R^\top (R h + b - R h)$
 
 ## Themes: What the Evidence Tells Us
 
-Looking across all 33 methods, several structural hypotheses emerge as clusters. Each theme represents a point of view about *what transformers are*, supported by the methods that exploit it.
+Looking across all 33 methods, a coherent tentative story appears once benchmark noise is reduced. Many successful adapters make geometric bets: first choose coordinates that align with pretrained structure, then constrain updates so they do not destroy that structure, then control update strength explicitly.
 
-### Theme 1: SVD as the Natural Coordinate System
+A quick source-level pass over the paper texts helps anchor this interpretation. Direct "we hypothesize" style statements cluster into the same buckets used here: LoRA and RandLoRA for low-rank sufficiency limits; OFT and ETHER for orthogonality and preserved angular structure; DoRA and DeLoRA for direction-strength decoupling; IA3 for scaling-only adaptation; SHiRA and C3A for high-rank and structural alternatives; AntiPaSTO for SVD-coordinate intervention and OOD transfer. That clustering is not perfect, but it is strong enough to justify organizing the literature by theme rather than by year.
+<!-- TODO IS this meta statement needed for the audience or directed at them? we don't actually do clustering either -->
 
-**Methods:** PiSSA (5), SVFT (2), SSVD (3.5), CLOVER (3.5), PSOFT (3.5), AntiPaSTO (4.5), AdaLoRA (1)
 
-**Core claim:** The SVD of each weight matrix provides the right coordinate system for intervention. The left singular vectors ($U$) define the output feature space, the right singular vectors ($V$) define the input feature space, and the singular values ($\Sigma$) quantify relative importance.
+The strongest recurring signal is *basis choice*. SVD-aware methods such as PiSSA, SSVD, CLOVER, and PSOFT often beat random-basis baselines under similar budgets in reported setups. In practical terms, initializing in the model's singular-vector basis reduces the search problem. The optimizer starts in a subspace the model already uses. This is not proof that SVD is uniquely correct, but it is stronger evidence than a single benchmark win.
 
-**Evidence for:** PiSSA's faster convergence shows the principal components carry the signal -- initializing in SVD space skips the "re-discovery" phase that random-init LoRA wastes. SVFT recovers 96% of full FT performance by learning *only* coefficients over the model's own singular vectors. SSVD's convergence hierarchy (SSVD > PiSSA > DoRA > LoRA) holds across scales and strengthens with model size. CLOVER extends this to *joint* SVD across functionally coupled matrices (Q-K, V-O), gaining 7.6% over LoRA.
+*Orthogonal* methods add the next piece. OFT and BOFT show that bounded rotations can preserve useful behavior while still adapting to new tasks. The Cayley parameterization appears across OFT, SSVD, PSOFT, and AntiPaSTO because it keeps rotations orthogonal without repeated projection steps. Pure orthogonality can be too rigid when tasks need gain changes, so methods that pair rotations with magnitude control tend to perform better.
 
-**Evidence against / limitations:** SVD is a linear decomposition of a nonlinear system. It captures the dominant linear subspaces but may miss nonlinear structure. The SVD basis is also model-specific (not transferable across checkpoints without re-computing). No method has demonstrated that SVD coordinates are *uniquely* correct vs. other spectral decompositions (NMF, ICA, etc.).
+That leads to the *direction-versus-strength* split. DoRA, DeLoRA, ROAD, and AntiPaSTO all separate where to move in weight space from how far to move. In runs that report careful ablations, this split often improves stability and sometimes final accuracy. Whether this is a deep property of transformer computation or mainly an optimization advantage is still open.
 
-**Bottom line:** The strongest evidence cluster. 6 of the top-7 scoring methods use SVD. The model's own eigenbasis appears to be a better intervention basis than random (LoRA), per-element (IA3), or spectral (FourierFT) alternatives.
+A parallel thread is *gain control*. IA3, VeRA, and LN tuning show that a lot of adaptation comes from rescaling existing features instead of inventing new ones. This explains why tiny parameter budgets can work well on many tasks. It also clarifies where they fail: when tasks require genuinely new feature combinations, scaling-only methods plateau.
 
-### Theme 2: Orthogonal Transformations Preserve Structure
+The *rank* debate looks secondary once basis is accounted for. Full-rank updates can help on harder tasks, as RandLoRA and C3A suggest, but PiSSA and SVFT show that a good low-rank subspace can beat a poorly chosen full-rank update. In practice, "which subspace" matters more than "how many free directions".
 
-**Methods:** OFT (2.5), BOFT (4), GOFT (1), HRA (1), ETHER (2.5), OFTv2 (1), PSOFT (3.5), RoAd (1), AntiPaSTO (4.5)
+Finally, methods that respect *functional structure* are promising but early. CLOVER's joint treatment of Q-K and V-O pairs outperforms per-matrix updates, and ReFT shows that targeted activation interventions can be far more parameter-efficient than weight updates. Both suggest that treating transformers as computation graphs, not bags of matrices, is a productive direction.
 
-**Core claim:** Useful adaptation should preserve the pairwise angular relationships between neuron weight vectors. Orthogonal transformations ($R \in O(d)$) rotate the weight space without distorting it, maintaining the "hyperspherical energy" that encodes learned knowledge.
+### Overall picture
 
-**Evidence for:** OFT's data efficiency (converges with 5% of data) and training stability directly result from bounded deviation. BOFT beats full FT while preserving hyperspherical energy. ETHER's learning-rate robustness and fast convergence come from bounded distance to identity. The Cayley parameterization (used by OFT, SSVD, PSOFT, AntiPaSTO) guarantees exact orthogonality without projection steps.
+Across methods, the same pattern keeps repeating: adapters work best when they preserve pretrained structure and then move within it in controlled ways. SVD-aware coordinates identify high-signal directions, near-orthogonal transforms protect useful geometry, and explicit strength controls prevent overwriting. This is currently the strongest empirical pattern in the catalog. It does not settle causality by itself, but it narrows the search space and yields concrete, falsifiable predictions for mechanistic work.
 
-**Evidence against / limitations:** Pure orthogonality prevents magnitude changes, limiting adaptation when neuron importance needs rescaling. DoRA's analysis shows that full FT *does* change magnitudes significantly. Methods that relax strict orthogonality (ETHER+, DeLoRA) often outperform strict ones, suggesting orthogonality is a useful *bias* but not a hard constraint.
 
-**Bottom line:** Orthogonality is the right default constraint -- it prevents catastrophic forgetting and enables data-efficient adaptation. But the best methods (AntiPaSTO, PSOFT) combine orthogonal rotations with learned magnitude adjustments, suggesting "mostly orthogonal + small scaling" is the true operating point.
-
-### Theme 3: Decoupling Magnitude from Direction
-
-**Methods:** DoRA (4.5), DeLoRA (3.5), ROAD (1), AntiPaSTO (4.5), SSVD (3.5)
-
-**Core claim:** Weight updates decompose into *what direction to change* (angular component) and *how much to change* (magnitude component). These should be learned separately because they serve different purposes: direction captures task-relevant feature selection, magnitude captures task-specific intensity.
-
-**Evidence for:** DoRA's weight decomposition analysis shows that full FT exhibits distinct magnitude vs. direction update patterns that LoRA conflates. DeLoRA's robustness to learning rate and training duration comes from explicitly bounding the magnitude while letting direction train freely. ROAD's $(\theta, \alpha)$ parameterization provides the cleanest per-pair decoupling.
-
-**Evidence against:** The direction/magnitude decomposition is not unique (many decompositions exist). The evidence is mostly about training stability, not about capturing a fundamental property of the model.
-
-**Bottom line:** Decoupling direction from magnitude is a reliable engineering principle that improves robustness and interpretability. Whether it reflects something deep about how transformers compute (gain modulation vs. selectivity tuning) or is simply good optimization practice remains open.
-
-### Theme 4: Gain Control -- Adaptation as Rescaling
-
-**Methods:** IA3 (1), VeRA (1), LN Tuning (1), DoRA (4.5)
-
-**Core claim:** Much of task adaptation is reweighting what the model already computes. Learned scaling vectors, normalization adjustments, and magnitude modulation can achieve competitive adaptation without introducing new weight-space directions.
-
-**Evidence for:** IA3's success with just $d$-dimensional scaling vectors; VeRA's success with only per-layer scaling of frozen random matrices; LN Tuning's competitive results with only normalization parameters. These suggest that the pretrained model already computes most useful features -- the task bottleneck is *which ones to attend to*, not *what to compute*.
-
-**Evidence against:** All pure scaling methods hit a performance ceiling on complex tasks. IA3 struggles when novel feature combinations are required. This ceiling is informative: it tells us that adaptation is *partly* rescaling and *partly* restructuring, and the hard tasks require the latter.
-
-**Bottom line:** Gain control handles the "easy" adaptation (60-80% of the gap to full FT on standard benchmarks). The remaining gap requires structural changes (new directions, rotations). But the fraction of adaptation that's just rescaling is larger than most people assume.
-
-### Theme 5: Low-Rank vs. Full-Rank -- Where the Ceiling Is
-
-**Methods:** LoRA (2), RandLoRA (2.5), C3A (1), LoHa (1), SHiRA (1)
-
-**Core claim:** LoRA's low-rank constraint ($\Delta W = BA$, $\text{rank} \leq r$) is both its strength (parameter efficiency) and its weakness (expressivity ceiling). Methods that achieve full-rank updates with few parameters either match or beat LoRA.
-
-**Evidence for:** RandLoRA shows that increasing LoRA's rank has diminishing returns, while full-rank random-basis combinations continue to improve. The loss landscape analysis shows RandLoRA reaches local minima closer to full FT. C3A achieves full-rank via circulant structure. LoHa achieves higher effective rank via Hadamard products.
-
-**Evidence against:** PiSSA and SVFT show that *which* rank-$r$ subspace you use matters more than having full rank. A well-chosen rank-$r$ subspace (SVD top components) outperforms a poorly chosen full-rank update. The rank bottleneck may be a red herring -- it's the *basis* that matters.
-
-**Bottom line:** Low rank suffices for easy tasks; full rank is needed for hard ones (vision-language, complex reasoning). But the SVD methods suggest that even for hard tasks, a good low-rank basis can recover most of the gain, making the rank debate secondary to the basis debate.
-
-### Theme 6: Respecting Functional Architecture
-
-**Methods:** CLOVER (3.5), ReFT (2), Poly/X-LoRA (1)
-
-**Core claim:** Treating each weight matrix independently ignores the functional structure of attention. Q-K matrices jointly define the attention pattern; V-O jointly define value extraction. ReFT goes further: intervene on *activations* at specific (layer, position) sites rather than on weights at all.
-
-**Evidence for:** CLOVER's joint SVD across Q-K and V-O pairs beats per-matrix methods by 5-7%. ReFT's 15-65x efficiency gain suggests that a few critical activation sites carry most of the task signal. Both methods exploit the insight that transformer computation has structure *beyond* individual weight matrices.
-
-**Evidence against:** CLOVER is one paper; the cross-layer coupling idea needs broader validation. ReFT operates in a fundamentally different space (activations vs. weights), making comparison with weight methods not fully apples-to-apples.
-
-**Bottom line:** Early but promising. The functional architecture of attention (which matrices cooperate) and the computational graph (where in the forward pass to intervene) are underexploited priors. As models grow, these priors should become *more* valuable because they reduce the search space along functionally meaningful dimensions.
-
-### Summary Table
-
-| Theme | Core PoV | Top method | Score | Strength of evidence |
-|-------|----------|-----------|-------|---------------------|
-| SVD basis | Model's eigenbasis is the natural coordinate system | PiSSA | 5 | Strong: 6/7 top methods use SVD |
-| Orthogonality | Preserve angular structure, bound deviation | BOFT | 4 | Strong: data efficiency, training stability |
-| Mag/Dir decoupling | Direction = what; magnitude = how much | DoRA | 4.5 | Moderate: good engineering, unclear if fundamental |
-| Gain control | Adaptation is mostly rescaling | IA3 | 1 | Moderate: works until it doesn't |
-| Rank debate | Full rank > low rank for hard tasks | RandLoRA | 2.5 | Moderate: secondary to basis choice |
-| Functional architecture | Respect attention's internal structure | CLOVER | 3.5 | Early: one paper, promising signal |
-
-### The Emerging Picture
-
-These themes are not independent. The top-scoring methods combine multiple themes:
-
-- **PiSSA** (5): SVD basis + data efficiency
-- **AntiPaSTO** (4.5): SVD basis + orthogonal rotation + mag/dir decoupling + OOD transfer
-- **DoRA** (4.5): Mag/dir decoupling + beats full FT + widely adopted
-- **BOFT** (4): Orthogonal + beats full FT + data efficiency
-
-The emerging consensus: the model's SVD eigenbasis defines the natural coordinate system for intervention. Within that basis, orthogonal rotations with small learned magnitude adjustments capture most useful adaptations. The direction/magnitude decomposition makes these adaptations robust and interpretable. When we additionally respect the functional architecture of attention (CLOVER) or intervene directly on activations (ReFT), further efficiency gains are possible.
-
-What remains unclear: whether these geometric priors capture something *fundamentally* true about how transformers compute, or whether they are "just" good inductive biases that happen to work well with current architectures. The answer matters for alignment: if the SVD basis encodes *causally relevant* computational structure, then adapter-based interventions are genuine interpretability tools; if it's just a convenient coordinate system, the causal claims don't follow.
-
+<!-- TODO kind of weak I'd rather make a prediciton, or state strength of evidence, or if it changed my mind here -->

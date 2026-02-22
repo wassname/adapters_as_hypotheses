@@ -1,0 +1,1004 @@
+{
+  "mode": "editor",
+  "full_text_verified": true,
+  "claims_checked": [
+    {
+      "claim": "We want to understand how transformers work. There are many approaches -- probing, ablation, SAEs --",
+      "number": "2022",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "GDM's interpretability team recently pivoted toward \"pragmatic interpretability\" -- directly solving",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "GDM's interpretability team recently pivoted toward \"pragmatic interpretability\" -- directly solving",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "If the adapter generalizes out-of-distribution, that tells us the geometric structure it exploits is",
+      "number": "2601.07473",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "| PE  | 1   | Parameter-efficient: competitive with full FT at <1% params |",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "| PE  | 1   | Parameter-efficient: competitive with full FT at <1% params |",
+      "number": "1%",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "| BL  | 1   | Beats LoRA on raw performance at comparable budget |",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "| DE  | 1.5 | Data-efficient: faster convergence or works with less data |",
+      "number": "1.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "| WA  | 1   | Widely adopted: used as baseline by other papers |",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Total = sum of applicable dimensions (max 8). Higher = stronger evidence that the method's structura",
+      "number": "8",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Hu et al. 2021](https://arxiv.org/abs/2106.09685) (ICLR 2022)",
+      "number": "2021",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Parameter-efficient (matches full FT with 0.01% params on GPT-3). Universal baseline a",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+WA=2 (parameter-efficient, universal baseline, but ceiling on hard tasks)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Qiu et al. 2023](https://arxiv.org/abs/2306.07280)",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**See also:** BOFT ([Liu et al. 2023](https://arxiv.org/abs/2311.06243)), OFTv2 ([2025](https://arxi",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "R = cayley(Q_skew)                         # R = (I + Q_skew)(I - Q_skew)^{-1} \u2208 O(k)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors demonstrate OFT preserves \"hyperspherical energy\" (pairwise neuron angles) dur",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors demonstrate OFT preserves \"hyperspherical energy\" (pairwise neuron angles) dur",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE=2.5 (parameter-efficient, data-efficient: converges well with only 5% of training d",
+      "number": "2.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE=2.5 (parameter-efficient, data-efficient: converges well with only 5% of training d",
+      "number": "5%",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Kopiczko et al. 2023](https://arxiv.org/abs/2310.11454) (ICLR 2024)",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** 10x fewer trainable parameters than LoRA while maintaining competitive performance acr",
+      "number": "10",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (extreme parameter efficiency, competitive with LoRA, random-projection ceiling on c",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Liu et al. 2024](https://arxiv.org/abs/2402.09353) (ICML 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "V\u0302_norm = norm(V, dim=1).detach()              # column norms, detached",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF+WA=4.5 (beats LoRA across multiple domains, QDoRA slightly outperforms full FT o",
+      "number": "4.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF+WA=4.5 (beats LoRA across multiple domains, QDoRA slightly outperforms full FT o",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Bini, Girrbach, Akata 2025](https://arxiv.org/abs/2503.18225) (ICLR 2025)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** The *direction* of a weight update (which features to mix) and its *strength* (how f",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u00c2_norm = clamp(norm(A, dim=1), min=1e-4)        # \u2208 \u211d^r",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u00c2_norm = clamp(norm(A, dim=1), min=1e-4)        # \u2208 \u211d^r",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "B\u0302_norm = clamp(norm(B, dim=0), min=1e-4)        # \u2208 \u211d^r",
+      "number": "0",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "B\u0302_norm = clamp(norm(B, dim=0), min=1e-4)        # \u2208 \u211d^r",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "scaling = (\u03bb / r) / (\u00c2_norm * B\u0302_norm)            # normalize each rank-1 component",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "The key insight: $\\Delta W = B \\cdot \\text{diag}\\left(\\frac{\\lambda}{r \\cdot \\|a_i\\| \\cdot \\|b^j\\|}\\",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+DE=3.5 (beats LoRA on robustness, faster convergence via bounded deviation preventi",
+      "number": "3.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+DE=3.5 (beats LoRA on robustness, faster convergence via bounded deviation preventi",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Meng, Wang, Zhang 2024](https://arxiv.org/abs/2404.02948) (NeurIPS 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** PiSSA consistently outperforms LoRA across 11 models (184M--70B) on 5 NLG and 8 NLU ta",
+      "number": "11",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF+DE=5 (beats LoRA, approaches/beats full FT, faster convergence, NeurIPS 2024)",
+      "number": "5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF+DE=5 (beats LoRA, approaches/beats full FT, faster convergence, NeurIPS 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Lingam et al. 2024](https://arxiv.org/abs/2405.19597)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [github.com/VijayLingam95/SVFT](https://github.com/VijayLingam95/SVFT/)",
+      "number": "95",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [github.com/VijayLingam95/SVFT](https://github.com/VijayLingam95/SVFT/)",
+      "number": "95",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** SVFT recovers up to 96% of full fine-tuning performance with only 0.006--0.25% of para",
+      "number": "96%",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL=2 (beats LoRA/DoRA on performance/parameter tradeoff, weight-aware structure)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Wang, Watanabe, Van hamme 2025](https://arxiv.org/abs/2509.02830)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "G_k = cayley(K)                              # G_k = (I-K)(I+K)^{-1} \u2208 O(k)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Only $k(k-1)/2 + k$ parameters (skew-symmetric entries + singular value shifts). Uses Cayley-Neumann",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Only $k(k-1)/2 + k$ parameters (skew-symmetric entries + singular value shifts). Uses Cayley-Neumann",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** SSVD achieves comparable performance to LoRA, DoRA, PiSSA, VeRA, and SVFT on domain-sh",
+      "number": "0.1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** SSVD achieves comparable performance to LoRA, DoRA, PiSSA, VeRA, and SVFT on domain-sh",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+DE=3.5 (matches/beats LoRA with fewer params on domain-shifted ASR, faster converge",
+      "number": "3.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Liu et al. 2022](https://arxiv.org/abs/2205.05638)",
+      "number": "2022",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [peft/tuners/ia3/layer.py](https://github.com/huggingface/peft/blob/main/src/peft/tuners/i",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [peft/tuners/ia3/layer.py](https://github.com/huggingface/peft/blob/main/src/peft/tuners/i",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/ia3_few_shot_peft.md](docs/ia3_few_shot_peft.md)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/ia3_few_shot_peft.md](docs/ia3_few_shot_peft.md)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim (IA)3 with T0-3B outperforms ICL with GPT-3 175B on Super-NaturalInstruc",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim (IA)3 with T0-3B outperforms ICL with GPT-3 175B on Super-NaturalInstruc",
+      "number": "0",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (parameter-efficient, strong on T5-family, expressivity-limited compared to LoRA/DoR",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (parameter-efficient, strong on T5-family, expressivity-limited compared to LoRA/DoR",
+      "number": "5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "*Implications:* IA3's success tells us that a surprisingly large fraction of \"task adaptation\" is ju",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "*Implications:* IA3's success tells us that a surprisingly large fraction of \"task adaptation\" is ju",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Petrushkov 2024](https://arxiv.org/abs/2409.00119)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Adaptation is a *rotation* of activation pairs, with independently controllable *ang",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "x1, x2 = split_groups(result, group_size)       # split into paired halves",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "x1, x2 = split_groups(result, group_size)       # split into paired halves",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "y1 = \u03b1 * cos(\u03b8) * x1 - \u03b1 * sin(\u03b8) * x2         # 2D rotation + scale",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "y1 = \u03b1 * cos(\u03b8) * x1 - \u03b1 * sin(\u03b8) * x2         # 2D rotation + scale",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "y2 = \u03b1 * sin(\u03b8) * x1 + \u03b1 * cos(\u03b8) * x2         # per pair",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "y2 = \u03b1 * sin(\u03b8) * x1 + \u03b1 * cos(\u03b8) * x2         # per pair",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (parameter-efficient, clean decoupling, competitive with LoRA, limited published ben",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "*Implications:* ROAD's decoupling of angle from magnitude is the cleanest formulation of the \"direct",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "*Implications:* ROAD's decoupling of angle from magnitude is the cleanest formulation of the \"direct",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Clark 2025](https://arxiv.org/abs/2601.07473)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Clark 2025](https://arxiv.org/abs/2601.07473)",
+      "number": "2601.07473",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** The model's own SVD basis defines the natural intervention manifold. Steering is bes",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** The model's own SVD basis defines the natural intervention manifold. Steering is bes",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "X = \u03b1 * A_v / 2                                  # scale skew-symmetric params",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "R_v = solve(I - X, I + X)                        # Cayley: (I - \u03b1A/2)^{-1}(I + \u03b1A/2) \u2208 O(r)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "R_v = solve(I - X, I + X)                        # Cayley: (I - \u03b1A/2)^{-1}(I + \u03b1A/2) \u2208 O(r)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "where $R_v(\\alpha) = (I - \\alpha A/2)^{-1}(I + \\alpha A/2)$ is the Cayley transform of skew-symmetri",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "where $R_v(\\alpha) = (I - \\alpha A/2)^{-1}(I + \\alpha A/2)$ is the Cayley transform of skew-symmetri",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using ",
+      "number": "6.9",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** AntiPaSTO beats prompting baselines by 6.9x on DailyDilemmas honesty evaluation using ",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE+OOD=4.5 (OOD transfer from templates to real dilemmas, trains on 800 pairs, bidirec",
+      "number": "4.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE+OOD=4.5 (OOD transfer from templates to real dilemmas, trains on 800 pairs, bidirec",
+      "number": "800",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "*Caveat:* Primary evidence is on models up to 4B parameters. The paper notes larger models \"need fur",
+      "number": "4",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Zhang et al. 2023](https://arxiv.org/abs/2303.10512) (ICLR 2023)",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim AdaLoRA achieves comparable or better performance than LoRA with 30-50% ",
+      "number": "30",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim AdaLoRA achieves comparable or better performance than LoRA with 30-50% ",
+      "number": "50%",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (parameter-efficient, smarter budget allocation, added complexity for modest gains)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Liu et al. 2023](https://arxiv.org/abs/2311.06243) (ICLR 2024)",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Orthogonal transformations (OFT's key insight) are right, but the full block-diagona",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Each butterfly layer has $d/2$ independent $2\\times2$ rotation blocks arranged in a permuted pattern",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Each butterfly layer has $d/2$ independent $2\\times2$ rotation blocks arranged in a permuted pattern",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** BOFT matches or exceeds OFT performance on DreamBooth and ControlNet with 2-4x fewer p",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** BOFT matches or exceeds OFT performance on DreamBooth and ControlNet with 2-4x fewer p",
+      "number": "4",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF+DE=4 (outperforms full FT baseline on almost all vision tasks; faster and more stab",
+      "number": "4",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF+DE=4 (outperforms full FT baseline on almost all vision tasks; faster and more stab",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Ma et al. 2024](https://arxiv.org/abs/2404.04316) (ICML 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Any orthogonal transformation in $SO(d)$ can be decomposed into $O(d)$ Givens rotati",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Any orthogonal transformation in $SO(d)$ can be decomposed into $O(d)$ Givens rotati",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "G = givens_rotation(d, i, j, \u03b8)            # identity except 2x2 block at (i,j)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "G = givens_rotation(d, i, j, \u03b8)            # identity except 2x2 block at (i,j)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim GOFT outperforms OFT and BOFT on LLaMA-2-7B SFT (MT-Bench, AlpacaEval), ",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim GOFT outperforms OFT and BOFT on LLaMA-2-7B SFT (MT-Bench, AlpacaEval), ",
+      "number": "7",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (most parameter-efficient orthogonal method, strong results, ICML 2024)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (most parameter-efficient orthogonal method, strong results, ICML 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Yuan et al. 2024](https://arxiv.org/abs/2405.17484)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Orthogonal adaptations are equivalent to specific low-rank adaptations when paramete",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Orthogonal adaptations are equivalent to specific low-rank adaptations when paramete",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "H_i = eye(d) - 2 * outer(v, v) / dot(v, v) # Householder reflector",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (bridges orthogonal and low-rank paradigms, competitive performance)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Albert et al. 2025](https://arxiv.org/abs/2502.00987) (ICLR 2025)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** RandLoRA outperforms LoRA as parameter budget expands, while remaining parameter-effic",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** RandLoRA outperforms LoRA as parameter budget expands, while remaining parameter-effic",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF=2.5 (full-rank update bridges gap with full FT on CLIP; loss landscape closer to fu",
+      "number": "2.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF=2.5 (full-rank update bridges gap with full FT on CLIP; loss landscape closer to fu",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Gao et al. 2024](https://arxiv.org/abs/2405.03003) (ICML 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u0394W = real(ifft2(spectrum))                       # inverse 2D DFT",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u0394W = real(ifft2(spectrum))                       # inverse 2D DFT",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim FourierFT achieves higher compression than LoRA by exploiting frequency-",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF=2.5 (outperforms all baselines including full FT on RoBERTa-Base CoLA and RoBERTa-L",
+      "number": "2.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BF=2.5 (outperforms all baselines including full FT on RoBERTa-Base CoLA and RoBERTa-L",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Phoveran et al. 2024](https://arxiv.org/abs/2407.19342) (ACL 2025)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [peft/tuners/c3a](https://github.com/huggingface/peft/blob/main/src/peft/tuners/c3a/)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Code:** [peft/tuners/c3a](https://github.com/huggingface/peft/blob/main/src/peft/tuners/c3a/)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/c3a_circular_convolution.md](docs/c3a_circular_convolution.md)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/c3a_circular_convolution.md](docs/c3a_circular_convolution.md)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim C3A achieves higher effective rank than LoRA with similar parameter coun",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim C3A achieves higher effective rank than LoRA with similar parameter coun",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (full-rank with fewer params, ACL 2025, circulant assumption is strong)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (full-rank with fewer params, ACL 2025, circulant assumption is strong)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Hyeon-Woo et al. 2021](https://arxiv.org/abs/2108.06098) (FedPara; adapted in [LyCORIS](",
+      "number": "2021",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Weight updates have *multiplicative* structure that a single low-rank factorization ",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** Weight updates have *multiplicative* structure that a single low-rank factorization ",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u0394W = (A1 @ B1) * (A2 @ B2)                     # Hadamard product, potentially full-rank",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "\u0394W = (A1 @ B1) * (A2 @ B2)                     # Hadamard product, potentially full-rank",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (richer than LoRA for vision, part of LyCORIS ecosystem)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Yeh et al. 2023](https://arxiv.org/abs/2309.14859) (LyCORIS)",
+      "number": "2023",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (efficient for conv layers, niche use case for transformers)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [JL-er 2024](https://arxiv.org/abs/2409.15371)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE=2.5 (memory-efficient, faster early convergence via larger initial gradient norms; ",
+      "number": "2.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Li et al. 2024](https://arxiv.org/abs/2405.15179) (NeurIPS 2024)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim VBLoRA uses 0.4% of LoRA's parameters while maintaining comparable perfo",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (extreme compression, NeurIPS 2024, intriguing theoretical implications)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (extreme compression, NeurIPS 2024, intriguing theoretical implications)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [KKB et al. 2024](https://arxiv.org/abs/2406.13175) (NeurIPS 2024 Workshop)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** The right parameterization isn't low-rank *or* full-rank, but *sparse high-rank*. Di",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** The right parameterization isn't low-rank *or* full-rank, but *sparse high-rank*. Di",
+      "number": "2%",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim SHiRA outperforms LoRA especially on concept loss when using multiple ad",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (sparse high-rank, good multi-adapter properties, workshop paper)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (extremely few params, competitive on some tasks, limited expressiveness)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Papers:** Prompt Tuning ([Lester et al. 2021](https://arxiv.org/abs/2104.08691)), Prefix Tuning ([",
+      "number": "2021",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Variants: Prefix Tuning adds prompts to key/value projections at every layer. P-Tuning v2 applies de",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Prompt Tuning scales with model size: at T5-XXL (11B), it matches full fine-tuning wit",
+      "number": "5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Prompt Tuning scales with model size: at T5-XXL (11B), it matches full fine-tuning wit",
+      "number": "11",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (scales with model size, conceptually different from weight methods)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Papers:** Polytropon ([Ponti et al. 2022](https://arxiv.org/abs/2202.13914)), X-LoRA ([Buehler 202",
+      "number": "2022",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (compositional multi-task, routing overhead)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Bini, Girrbach, Akata 2024](https://arxiv.org/abs/2405.20271)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**See also:** BiPDO ([2024](https://arxiv.org/abs/2406.00045)), repeng/representation engineering",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+DE=2.5 (fast convergence by default via high learning rate robustness; robust fixed-st",
+      "number": "2.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [2025](https://arxiv.org/abs/2506.19847) (EMNLP 2025)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/oftv2_input_centric.md](docs/oftv2_input_centric.md)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Saved:** [docs/oftv2_input_centric.md](docs/oftv2_input_centric.md)",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** OFT's computational bottleneck (cubic complexity from weight-centric matrix-matrix m",
+      "number": "10",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Hypothesis:** OFT's computational bottleneck (cubic complexity from weight-centric matrix-matrix m",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim 10x faster training and 3x lower GPU memory than OFT without performance",
+      "number": "10",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim 10x faster training and 3x lower GPU memory than OFT without performance",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE=1 (same hypothesis as OFT, much more practical)",
+      "number": "1",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [JL-er 2024](https://arxiv.org/abs/2409.15371)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Superseded by MiSS (entry 21), which generalizes the shard-sharing idea more cleanly. ",
+      "number": "21",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Tang et al. 2024](https://arxiv.org/abs/2411.17426)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "W_qk = cat([W_q, W_k], dim=0)               # stack Q-K pairs",
+      "number": "0",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "W_vo = cat([W_v, W_o.T], dim=0)              # stack V-O pairs",
+      "number": "0",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF=3.5 (beats LoRA and DoRA significantly; validated across 3 modalities)",
+      "number": "3.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+BF=3.5 (beats LoRA and DoRA significantly; validated across 3 modalities)",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [2025](https://arxiv.org/abs/2505.11235)",
+      "number": "2025",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** Authors claim 80% memory reduction vs standard OFT. Tested on 35 NLP and CV tasks. Com",
+      "number": "35",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+DE=3.5 (memory-efficient, faster convergence from SVD init, beats LoRA on 35 tasks)",
+      "number": "3.5",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL+DE=3.5 (memory-efficient, faster convergence from SVD init, beats LoRA on 35 tasks)",
+      "number": "35",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Paper:** [Wu, Arora, Wang et al. 2024](https://arxiv.org/abs/2404.03592)",
+      "number": "2024",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Evidence:** ReFT is 15-65x more parameter-efficient than LoRA (only modifying hidden states at a f",
+      "number": "15",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL=2 (15-65x more parameter-efficient than LoRA, beats LoRA on multiple benchmarks, di",
+      "number": "2",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "**Grade:** PE+BL=2 (15-65x more parameter-efficient than LoRA, beats LoRA on multiple benchmarks, di",
+      "number": "15",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "Looking across all 33 methods, a coherent story appears once the benchmark noise is stripped away. M",
+      "number": "33",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "A quick source-level pass over the paper texts helps anchor this interpretation. Direct \"we hypothes",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "A quick source-level pass over the paper texts helps anchor this interpretation. Direct \"we hypothes",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "A parallel thread is gain control. IA3, VeRA, and LN tuning show that a lot of adaptation comes from",
+      "number": "3",
+      "status": "number_found_in_paper"
+    },
+    {
+      "claim": "The rank debate looks secondary once basis is accounted for. Full-rank updates can help on harder ta",
+      "number": "3",
+      "status": "number_found_in_paper"
+    }
+  ],
+  "missing_context": [
+    "Paper limitations not discussed"
+  ],
+  "citations_found": [
+    "We want to understand how transformers work. There are many approaches -- probin",
+    "GDM's interpretability team recently pivoted toward \"pragmatic interpretability\"",
+    "**Paper:** [Hu et al. 2021](https://arxiv.org/abs/2106.09685) (ICLR 2022)",
+    "**Evidence:** Parameter-efficient (matches full FT with 0.01% params on GPT-3). ",
+    "**Paper:** [Qiu et al. 2023](https://arxiv.org/abs/2306.07280)",
+    "**See also:** BOFT ([Liu et al. 2023](https://arxiv.org/abs/2311.06243)), OFTv2 ",
+    "**Paper:** [Kopiczko et al. 2023](https://arxiv.org/abs/2310.11454) (ICLR 2024)",
+    "**Paper:** [Liu et al. 2024](https://arxiv.org/abs/2402.09353) (ICML 2024)",
+    "**Paper:** [Lingam et al. 2024](https://arxiv.org/abs/2405.19597)",
+    "**Paper:** [Liu et al. 2022](https://arxiv.org/abs/2205.05638)",
+    "**Paper:** [Zhang et al. 2023](https://arxiv.org/abs/2303.10512) (ICLR 2023)",
+    "**Grade:** PE=1 (parameter-efficient, smarter budget allocation, added complexit",
+    "**Paper:** [Liu et al. 2023](https://arxiv.org/abs/2311.06243) (ICLR 2024)",
+    "**Paper:** [Ma et al. 2024](https://arxiv.org/abs/2404.04316) (ICML 2024)",
+    "**Paper:** [Yuan et al. 2024](https://arxiv.org/abs/2405.17484)",
+    "**Paper:** [Albert et al. 2025](https://arxiv.org/abs/2502.00987) (ICLR 2025)",
+    "**Paper:** [Gao et al. 2024](https://arxiv.org/abs/2405.03003) (ICML 2024)",
+    "**Paper:** [Phoveran et al. 2024](https://arxiv.org/abs/2407.19342) (ACL 2025)",
+    "**Paper:** [Hyeon-Woo et al. 2021](https://arxiv.org/abs/2108.06098) (FedPara; a",
+    "**Paper:** [Yeh et al. 2023](https://arxiv.org/abs/2309.14859) (LyCORIS)",
+    "**Paper:** [Li et al. 2024](https://arxiv.org/abs/2405.15179) (NeurIPS 2024)",
+    "**Paper:** [KKB et al. 2024](https://arxiv.org/abs/2406.13175) (NeurIPS 2024 Wor",
+    "**Papers:** Prompt Tuning ([Lester et al. 2021](https://arxiv.org/abs/2104.08691",
+    "**Papers:** Polytropon ([Ponti et al. 2022](https://arxiv.org/abs/2202.13914)), ",
+    "**Paper:** [Tang et al. 2024](https://arxiv.org/abs/2411.17426)",
+    "**Paper:** [Wu, Arora, Wang et al. 2024](https://arxiv.org/abs/2404.03592)"
+  ],
+  "suggestions": [],
+  "verdict": "needs_work"
+}

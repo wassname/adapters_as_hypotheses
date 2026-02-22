@@ -1,0 +1,468 @@
+===
+title: Adapters as Representational Hypotheses -- Which Geometric Priors About Transformer Internals Hold Under Intervention?
+author: Compiled from 33 PEFT papers (2021--2025)
+model:
+    mode: strict
+===
+
+// ══════════════════════════════════════════════════════════════════════
+// MAIN THESIS
+// Each adapter constrains how you update pretrained weights. When one
+// architecture outperforms another under controlled conditions, the
+// winner's structural assumptions are supported as a better description
+// of the weight manifold. This is a natural experiment running across
+// hundreds of papers, and almost nobody reads it as science about
+// representations.
+//
+// Pseudocode for each adapter lives in adapters_pseudocode.md
+// Evidence files are in docs/ (frozen copies of papers as markdown)
+// ══════════════════════════════════════════════════════════════════════
+
+[Natural Manifold]: The model's own geometric structure -- its SVD basis
+  combined with orthogonal constraints and direction/magnitude decoupling --
+  defines the natural intervention manifold for transformer weight adaptation.
+  Adapters exploiting this structure generalize better, converge faster, and
+  reveal causally relevant properties of internals.
+  + <SVD Basis Cluster>
+  + <Orthogonal Preservation>
+  + <Direction Magnitude Decoupling>
+  + <Functional Architecture>
+  + <Shared Structure Evidence>
+  + <Prompt Tuning Orthogonal Paradigm>
+  - <Gain Control Sufficiency>
+  - <Rank Is Secondary>
+  - <SVD Is Linear Decomposition>
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 1: SVD AS THE NATURAL COORDINATE SYSTEM
+// Methods: PiSSA, SVFT, SSVD, CLOVER, AntiPaSTO, AdaLoRA, PSOFT
+// ══════════════════════════════════════════════════════════════════════
+
+# SVD Basis
+
+<SVD Basis Cluster>
+
+(1) [SVD Init Wins]: PiSSA's SVD initialization consistently outperforms
+    LoRA's random initialization across 11 models and 13 tasks, showing
+    the principal components carry the adaptation signal. #observation
+    [Meng et al. 2024](https://arxiv.org/abs/2404.02948)
+    [evidence](docs/pissa_principal_singular_values_adaptation.md#L1-L20)
+    > PiSSA shares the same architecture as LoRA, but initializes the adaptor matrices A and B with the principal components of the original matrix W, and put the remaining components into a residual matrix W res which is frozen during fine-tuning. Compared to LoRA, PiSSA updates the principal components while freezing the "residual" parts, allowing faster convergence and enhanced performance. Comparative experiments of PiSSA and LoRA across 11 different models, ranging from 184M to 70B, encompassing 5 NLG and 8 NLU tasks, reveal that **PiSSA consistently outperforms LoRA under identical experimental setups.** On the GSM8K benchmark, Gemma-7B fine-tuned with PiSSA achieves an accuracy of 77.7%, surpassing LoRA's 74.53% by 3.25%.
+    {reason: "NeurIPS 2024, 11 models up to 70B, controlled comparisons with identical architecture (same as LoRA)", credence: 0.88}
+(2) [SVD Coefficients Suffice]: SVFT recovers 96% of full FT performance
+    by learning only sparse coefficients over the model's own singular
+    vectors -- no new directions needed. #observation
+    [Lingam et al. 2024](https://arxiv.org/abs/2405.19597)
+    [evidence](docs/svft_svd_coefficient_finetuning.md#L1-L30)
+    > We propose SVFT, a simple approach that fundamentally differs from existing methods: the structure imposed on delta-W depends on the specific weight matrix W. Specifically, SVFT updates W as a sparse combination of outer products of its singular vectors, training only the coefficients (scales) of these sparse combinations. (...) Extensive experiments on language and vision benchmarks show that **SVFT recovers up to 96% of full fine-tuning performance while training only 0.006 to 0.25% of parameters, outperforming existing methods that only recover up to 85% performance** using 0.03 to 0.8% of the trainable parameter budget.
+    {reason: "preprint under review; strong controlled comparison across language and vision; 96% of full FT with 0.006% params is striking but unpublished", credence: 0.74}
+(3) [Asymmetric SVD Works]: SSVD shows that selectively rotating input-space
+    (right) singular vectors while preserving output-space (left) vectors
+    matches LoRA with far fewer params, and a convergence hierarchy emerges
+    at scale: SSVD > PiSSA > DoRA > LoRA. #observation
+    [Wang, Watanabe, Van hamme 2025](https://arxiv.org/abs/2509.02830)
+    [evidence](docs/ssvd_structured_svd_finetuning.md#L1-L40)
+    > This work presents the first comprehensive integration and benchmarking of these PEFT methods within ESPnet. We further introduce structured SVD-guided (SSVD) fine-tuning, which selectively rotates input-associated right singular vectors while keeping output-associated vectors fixed to preserve semantic mappings. This design enables robust domain adaptation with minimal trainable parameters and improved efficiency. (...) **SSVD achieves comparable performance with significantly fewer trainable parameters and higher efficiency than LoRA and SoTA LoRA variants**, approaching fully fine-tuned model performance.
+    {reason: "first comprehensive PEFT benchmark for speech across 0.1B-2B; convergence hierarchy consistent across scales", credence: 0.80}
+----
+(4) [SVD Is Natural Basis]: The weight matrix's own SVD provides the right
+    coordinate system for adaptation -- 6 of the top 7 scoring methods use it.
+    {reason: "PiSSA beats random init, SVFT shows coefficients alone suffice, SSVD hierarchy holds across scales; convergent evidence from independent groups", inference: 0.85}
+  +> [Natural Manifold]
+
+
+<Joint SVD Evidence>
+
+(1) [Cross-Layer Coupling]: CLOVER's joint SVD across Q-K and V-O attention
+    matrix pairs beats per-matrix LoRA by 7.6% on LLaMA-2-7B, validated
+    across 4 model families on 8 commonsense tasks. #observation
+    [Meng, Tang, Jiang, Zhang 2024](https://arxiv.org/abs/2411.17426)
+    [evidence](docs/clover_joint_svd.md#L258-L275)
+    > CLOVER consistently outperforms all other methods across all models and tasks. Specifically, on LLaMA 7B, CLOVER outperforms LoRA, DoRA, and PiSSA by 9%, 5.3%, and 1%, respectively. On LLaMA 13B, CLOVER outperforms these methods by 5.7%, 4.7%, and 0.8%. On LLaMA-2-7B, CLOVER surpasses LoRA, DoRA, HiRA, and PiSSA by 7.6%, 5.5%, 3.8%, and 0.7%. Even on LLaMA-3-8B, with fewer trainable parameters, CLOVER outperforms by 7.1%, 2.7%, 1.2%, and 0.6%.
+    {reason: "Under review (not yet published at venue); controlled comparison using DoRA's own hyperparams; 4 LLaMA variants x 8 tasks; beats PiSSA by 0.7% which is modest but consistent", credence: 0.72}
+----
+(2) [Functional SVD Matters]: Attention matrices cooperate functionally (Q-K
+    define pattern, V-O define extraction), and joint decomposition captures
+    this coupling.
+    {reason: "mechanistic intuition is sound; Q and K jointly specify attention weights so their updates should be coordinated. CLOVER paper also shows 82% of features project outside PiSSA's subspace, but CLOVER covers all directions. Single paper but multi-model validation.", inference: 0.72}
+  +> [Natural Manifold]
+
+
+<PSOFT Synthesis>
+
+(1) [OFT in SVD Coords]: PSOFT combines PiSSA's SVD initialization with
+    OFT's Cayley rotation, operating in the principal subspace. Beats LoRA
+    on 35 NLP and CV tasks with ~80% memory reduction vs OFT. #observation
+    [Wu et al. 2026](https://arxiv.org/abs/2505.11235)
+    [evidence](docs/psoft_principal_subspace_oft.md#L1-L50)
+    > PSOFT improves parameter and memory efficiency without compromising performance. Although GOFT and PSOFT have the same parameter counts, **PSOFT reduces memory usage by about 80% and avoids OOM issues.** It further achieves up to an 18x improvement in parameter efficiency over BOFT, OFTv2, and LoRA variants, attaining the best average performance across all baselines with the lowest memory footprint.
+    {reason: "ICLR 2026; 35 NLP+CV tasks across 4 models (DeBERTa, ViT, LLaMA-3.2-3B, LLaMA-3.1-8B); code available; bridges PiSSA and OFT with theoretical geometry guarantee", credence: 0.82}
+----
+(2) [SVD Plus Orthogonal Synergy]: The best performing adapters combine
+    SVD basis selection with orthogonal constraints, suggesting both priors
+    are complementary.
+    {reason: "PSOFT + AntiPaSTO + SSVD all combine SVD with Cayley rotations and all score well; convergent design choices", inference: 0.75}
+  +> [Natural Manifold]
+
+
+<AntiPaSTO OOD Transfer>
+
+(1) [OOD Via SVD Rotation]: AntiPaSTO achieves out-of-distribution transfer
+    from template persona pairs to real moral dilemmas (6.9x prompting baseline)
+    using Cayley rotations of SVD singular vectors. #observation
+    [Clark 2025](https://arxiv.org/abs/2601.07473)
+    [evidence](docs/antipasto_antiparallel_steering.md#L1-L40)
+    > Trained on 800 such pairs, our method transfers to 1,360 unseen moral dilemmas where honesty conflicts with other values, achieving **6.9x the Steering F1 of prompting** on Gemma-3-1B. We demonstrate two key advantages over prompting: OOD transfer (train on simple persona pairs, test on complex moral reasoning) and suppression bypass (steer when prompting triggers refusal).
+    {reason: "single-author, one trait (honesty), models up to 4B, high seed variance (std ~5-7); but OOD transfer is the strongest possible test of causal relevance", credence: 0.55}
+(2) [SVD Causal Not Correlational]: If SVD rotation transfers OOD, the
+    geometric structure it exploits is causally relevant to behavior,
+    not merely correlated.
+    {reason: "OOD transfer is strong evidence of causality (rules out surface pattern matching), but narrow: 1 trait, 1 eval benchmark, 1 author. Independent replication would raise this considerably.", inference: 0.65}
+  +> [Natural Manifold]
+
+
+<LoRA Baseline Limitation>
+
+(1) [LoRA Ceiling]: Biderman et al. 2024 find LoRA underperforms full FT
+    on harder tasks and larger scale, suggesting the low-rank assumption
+    holds for surface adaptation but breaks where deep restructuring
+    is needed. #observation
+    [Biderman et al. 2024](https://arxiv.org/abs/2405.09673)
+    [evidence](docs/biderman_lora_limitations.md#L1-L50)
+    > Our results show that, in the standard low-rank settings, **LoRA substantially underperforms full finetuning.** Nevertheless, LoRA better maintains the base model's performance on tasks outside the target domain. (...) Finally, we show that full finetuning learns perturbations with a rank that is **10-100x greater than typical LoRA configurations**, possibly explaining some of the reported gaps.
+    {reason: "TMLR 2024 (published, peer-reviewed); Llama-2-7B on code and math. In this local corpus, the paper is referenced in multiple docs (ROAD, DeLoRA, MiSS, CLOVER), mostly as supporting related-work evidence rather than direct replication.", credence: 0.80}
+----
+(2) [Random Init Wastes Steps]: LoRA's random initialization works (universal
+    baseline) but converges slower than SVD-informed init, suggesting random
+    subspaces are not special -- just adequate.
+    {reason: "PiSSA shows 3.25% gain on GSM8K just from better init; VeRA shows random projections work at all; together: random is adequate, SVD is better", inference: 0.70}
+  +> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 2: ORTHOGONAL TRANSFORMATIONS PRESERVE STRUCTURE
+// Methods: OFT, BOFT, GOFT, HRA, ETHER, OFTv2, ROAD
+// ══════════════════════════════════════════════════════════════════════
+
+# Orthogonality
+
+<Orthogonal Preservation>
+
+(1) [Hyperspherical Energy Preserved]: OFT provably preserves pairwise
+    neuron angles (hyperspherical energy) during adaptation, yielding
+    stable finetuning and strong data efficiency (converges with 5%
+    of training data on controllable generation). #observation
+    [Qiu et al. 2023](https://arxiv.org/abs/2306.07280)
+    [evidence](docs/oft_orthogonal_finetuning.md#L1-L40)
+    > We introduce a principled finetuning method -- Orthogonal Finetuning (OFT), for adapting text-to-image diffusion models to downstream tasks. Unlike existing methods, **OFT can provably preserve hyper-spherical energy which characterizes the pairwise neuron relationship on the unit hypersphere.** We find that this property is crucial for preserving the semantic generation ability of text-to-image diffusion models. (...) OFT is more sample-efficient in training and converges well with only 5% of the original dataset, while both ControlNet and LoRA cannot converge until 50% of the data is present.
+    {reason: "NeurIPS 2023; provable preservation is rare among PEFT methods; data efficiency claim is strong but limited to vision generation", credence: 0.82}
+(2) [Butterfly Orthogonal Scales]: BOFT extends OFT with butterfly factorization,
+    reducing parameters from O(d^2) to O(d log d) while matching or exceeding
+    OFT performance. Outperforms full FT on vision tasks. #observation
+    [Liu et al. 2023](https://arxiv.org/abs/2311.06243)
+    [evidence](docs/boft_butterfly_orthogonal.md#L1-L30)
+    > We propose an efficient orthogonal parameterization using butterfly structures. (...) By subsuming OFT as a special case, BOFT introduces a generalized orthogonal finetuning framework. (...) **BOFT outperforms current state-of-the-art methods by a considerable margin**, validating its superior parameter-efficiency and generalization ability.
+    {reason: "ICLR 2024; subsumes OFT theoretically; broad empirical validation across vision and language", credence: 0.80}
+----
+(3) [Orthogonality Prevents Catastrophic Forgetting]: Orthogonal constraints
+    bound deviation from pretrained weights, preventing the catastrophic
+    overwriting that plagues unconstrained methods at high learning rates.
+    {reason: "OFT converges on 5% data, ETHER is LR-robust, BOFT beats full FT on vision; consistent signal that bounded deviation helps. But strict orthogonality prevents magnitude changes, limiting it on tasks needing rescaling.", inference: 0.78}
+  +> [Natural Manifold]
+
+
+<Givens and Householder>
+
+(1) [Minimal Orthogonal Params]: GOFT decomposes orthogonal transformations
+    into O(d) Givens rotations (planar 2D rotations), achieving the most
+    parameter-efficient orthogonal parameterization. #observation
+    [Ma et al. 2024](https://arxiv.org/abs/2404.04316)
+    [evidence](docs/goft_givens_orthogonal.md#L1-L44)
+    > We first use O(d) Givens rotations to accomplish arbitrary orthogonal transformation in SO(d) with provable equivalence, reducing parameter complexity from O(d^2) to O(d). Then we introduce flexible norm and relative angular adjustments under soft orthogonality regularization to enhance the adaptation capability of downstream semantic deviations. Extensive experiments on various tasks and pretrained models validate the effectiveness of our methods.
+    {reason: "ICML 2024; provable O(d) reduction from O(d^2); but advantage over BOFT is modest on benchmarks", credence: 0.70}
+(2) [Orthogonal Equals Low-Rank]: HRA proves that a chain of r Householder
+    reflections is both orthogonal AND equivalent to a rank-r perturbation,
+    bridging the low-rank and orthogonal paradigms. #observation
+    [Yuan et al. 2024](https://arxiv.org/abs/2405.17484)
+    [evidence](docs/hra_householder_reflection.md#L1-L30)
+    > We bridge the gap between these two techniques, proposing a simple but effective adaptation method based on Householder reflections. Given a pre-trained model, our method fine-tunes its layers by multiplying each frozen weight matrix with an orthogonal matrix constructed by a chain of learnable Householder reflections (HRs). This HR-based orthogonal fine-tuning is equivalent to an adaptive low-rank adaptation. Moreover, we show that the orthogonality of the reflection planes corresponding to the HRs impacts the model capacity and regularity.
+    {reason: "theoretical bridge resolving 'low-rank vs orthogonal' dichotomy; merged into HuggingFace PEFT; empirical results competitive but not dominant", credence: 0.72}
+----
+(3) [Low-Rank Orthogonal Sweet Spot]: The effective adaptation is simultaneously
+    low-rank and approximately orthogonal -- small rotations on the Stiefel manifold.
+    {reason: "HRA's theoretical bridge is convincing; GOFT's practical efficiency confirms orthogonal methods can be made lean. But 'low-rank orthogonal' as the true operating point needs more direct testing.", inference: 0.65}
+  +> [Natural Manifold]
+
+
+<ETHER Bounded Deviation>
+
+(1) [Fixed-Strength Rotations Work]: ETHER demonstrates that bounded orthogonal
+    transformations (close to identity) achieve competitive adaptation while
+    preventing catastrophic forgetting, with high learning-rate robustness. #observation
+    [Bini, Girrbach, Akata 2024](https://arxiv.org/abs/2405.20271)
+    [evidence](docs/ether_orthogonal_steering.md#L1-L30)
+    > We propose the ETHER transformation family, which performs Efficient fineTuning via HypErplane Reflections. By design, ETHER transformations require a minimal number of parameters, are less likely to deteriorate model performance, and exhibit robustness to hyperparameter and learning rate choices. In particular, we introduce ETHER and its relaxation ETHER+, which match or outperform existing PEFT methods with significantly fewer parameters (~10-100 times lower than LoRA or OFT) across multiple image synthesis and natural language tasks without exhaustive hyperparameter tuning.
+    {reason: "foundational for DeLoRA which won ICLR 2025; the bounded-deviation principle is well-validated; 10-100x fewer params than LoRA/OFT", credence: 0.72}
+----
+(2) [Minimal Intervention Often Suffices]: For behavioral steering, bounded
+    rotations suffice; for complex task adaptation, they hit a ceiling.
+    {reason: "ETHER works for many tasks but DeLoRA's extension (unbounding magnitude) does better, confirming the ceiling", inference: 0.70}
+  +> [Orthogonal Preservation]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 3: DIRECTION/MAGNITUDE DECOUPLING
+// Methods: DoRA, DeLoRA, ROAD, AntiPaSTO, SSVD
+// ══════════════════════════════════════════════════════════════════════
+
+# Decoupling
+
+<Direction Magnitude Decoupling>
+
+(1) [FT Decouples Naturally]: DoRA's weight decomposition analysis reveals
+    that full fine-tuning exhibits distinct magnitude vs. direction update
+    patterns that LoRA conflates. QDoRA slightly outperforms full FT. #observation
+    [Liu et al. 2024](https://arxiv.org/abs/2402.09353)
+    [evidence](docs/dora_weight_decomposed_lora.md#L1-L40)
+    > Drawing on Weight Normalization, which achieves faster convergence via improving the conditioning of the gradient with weight reparameterization, we introduce a novel weight decomposition analysis that initially reparameterizes model weights into magnitude and directional components, subsequently examining the changes in magnitude and direction introduced by LoRA and FT. **Our analysis reveals that LoRA and FT exhibit markedly distinct patterns of updates**, leading us to surmise that these variations mirror the learning capability of each method. (...) DoRA consistently outperforms LoRA on fine-tuning LLaMA, LLaVA, and VL-BART on various downstream tasks, such as commonsense reasoning, visual instruction tuning, and image/video-text understanding.
+    {reason: "ICML 2024 (NVIDIA); thorough analysis + consistent improvements across 3 model families; widely adopted as LoRA replacement", credence: 0.85}
+(2) [Bounded Deviation Robust]: DeLoRA normalizes each rank-1 component and
+    introduces scalar lambda controlling distance bound, yielding robustness
+    to LR and training duration where LoRA fails. #observation
+    [Bini, Girrbach, Akata 2025](https://arxiv.org/abs/2503.18225)
+    [evidence](docs/delora_decoupled_low_rank_adaptation.md#L1-L30)
+    > We propose Decoupled Low-rank Adaptation (DeLoRA), a novel finetuning method that normalizes and scales learnable low-rank matrices. **By bounding the distance of the transformation, DeLoRA effectively decouples the angular learning from the adaptation strength, enhancing robustness without compromising performance.** Through evaluations on subject-driven image generation, natural language understanding, and instruction tuning, we show that DeLoRA matches or surpasses performance of competing PEFT methods, while exhibiting stronger robustness.
+    {reason: "ICLR 2025; same group as ETHER so a coherent research line; robustness claim well-supported by ablations", credence: 0.82}
+----
+(3) [Decoupling Is Sound Engineering]: Separating what-to-change (direction)
+    from how-much (magnitude) consistently improves training stability and
+    often improves final performance.
+    {reason: "DoRA beats LoRA everywhere, DeLoRA adds robustness, ROAD provides cleanest per-pair formulation; 3 independent groups converge on this. Whether it's fundamental or just good optimization is unclear.", inference: 0.80}
+  +> [Natural Manifold]
+
+
+<ROAD Explicit Decoupling>
+
+(1) [Angle Plus Magnitude Per Pair]: ROAD parameterizes adaptation as learned
+    rotation angle theta plus magnitude alpha per activation pair, the cleanest
+    direction/strength separation. #observation
+    [Liao, Monz 2024](https://arxiv.org/abs/2409.00119)
+    [evidence](docs/road_rotary_adaptation.md#L1-L30)
+    > We introduce a novel method, RoAd, which employs a straightforward 2D rotation to adapt LLMs and addresses all the above challenges: (1) RoAd is remarkably parameter-efficient, delivering optimal performance on GLUE, eight commonsense reasoning tasks and four arithmetic reasoning tasks with < 0.1% trainable parameters; (2) RoAd facilitates the efficient serving of requests requiring different adapters within a batch, with an overhead comparable to element-wise multiplication instead of batch matrix multiplication; (3) RoAd enhances LLM's interpretability through integration within a framework of distributed interchange intervention, demonstrated via composition experiments.
+    {reason: "clean formulation connecting to RoPE; supports mixed-adapter batching which is unique; limited vision/generation benchmarks", credence: 0.62}
+----
+(2) [Continuous Steering Knob]: The explicit magnitude parameter provides
+    a continuous interpolation between identity and full adaptation, ideal
+    for controllable steering.
+    {reason: "mathematically clean; alpha as continuous knob is the most interpretable version of direction/strength decoupling", inference: 0.65}
+  +> [Direction Magnitude Decoupling]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 4: GAIN CONTROL -- ADAPTATION AS RESCALING
+// Methods: IA3, VeRA, LN Tuning
+// Evidence AGAINST the full thesis: if mere rescaling works, the
+// geometric structure may not be needed.
+// ══════════════════════════════════════════════════════════════════════
+
+# Gain Control
+
+<Gain Control Sufficiency>
+
+(1) [Scaling Vectors Competitive]: IA3 achieves competitive adaptation using
+    only d-dimensional scaling vectors at key, value, and FFN positions --
+    no new weight directions needed. T0-3B with IA3 outperforms GPT-3 175B
+    with ICL. #observation
+    [Liu et al. 2022](https://arxiv.org/abs/2205.05638)
+    [evidence](docs/ia3_few_shot_peft.md#L1-L30)
+    > We introduce (IA)3 that scales activations by learned vectors, attaining stronger performance while only introducing a relatively tiny amount of new parameters. (...) We validate the effectiveness of T-Few on completely unseen tasks by applying it to the RAFT benchmark, **attaining super-human performance for the first time and outperforming the state-of-the-art by 6% absolute.**
+    {reason: "strong result on RAFT; super-human is notable; but T5-family specific and scaling-only has known expressivity ceiling", credence: 0.72}
+(2) [Random Projections Plus Scaling]: VeRA matches LoRA with 10x fewer
+    trainable parameters using only per-layer scaling of shared frozen
+    random matrices. #observation
+    [Kopiczko et al. 2023](https://arxiv.org/abs/2310.11454)
+    [evidence](docs/vera_vector_random_matrix_adaptation.md#L1-L30)
+    > We present Vector-based Random Matrix Adaptation (VeRA), which significantly reduces the number of trainable parameters compared to LoRA, yet maintains the same performance. **It achieves this by using a single pair of low-rank matrices shared across all layers and learning small scaling vectors instead.**
+    {reason: "ICLR 2024; surprising result that random projections suffice with per-layer gating; JL-lemma argument is plausible", credence: 0.75}
+----
+(3) [Rescaling Gets 60-80%]: A surprisingly large fraction of task adaptation
+    is reweighting existing features, suggesting the model already computes
+    the right features -- the bottleneck is channel selection.
+    {reason: "IA3 and VeRA perform well on standard benchmarks but both hit expressivity ceilings on hard tasks. This means rescaling handles easy adaptation but not deep restructuring.", inference: 0.45}
+  -> [Natural Manifold]
+
+// The contra is weak (0.45) because gain control works on easy tasks
+// but fails precisely where geometric structure matters most. The
+// ceiling IS the evidence for the manifold hypothesis.
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 5: RANK IS SECONDARY TO BASIS CHOICE
+// Methods: LoRA, RandLoRA, C3A, FourierFT, LoHa, LoKr
+// ══════════════════════════════════════════════════════════════════════
+
+# Rank Debate
+
+<Rank Is Secondary>
+
+(1) [Full Rank Helps Hard Tasks]: RandLoRA achieves full-rank updates by
+    summing scaled random rank-r bases, and its loss landscape is closer
+    to full FT's than LoRA's. #observation
+    [Albert et al. 2025](https://arxiv.org/abs/2502.00987)
+    [evidence](docs/randlora_random_matrix.md#L1-L30)
+    > This paper aims to answer this question by introducing RandLoRA, a parameter-efficient method that performs full-rank updates using a learned linear combinations of low-rank, non-trainable random matrices. (...) Our findings reveal that full-rank updates are beneficial across vision and language tasks individually, and even more so for vision-language tasks, where RandLoRA significantly reduces -- and sometimes eliminates -- the performance gap between standard fine-tuning and LoRA, demonstrating its efficacy.
+    {reason: "ICLR 2025; eliminates FT-LoRA gap on vision-language; loss landscape analysis compelling; improvement task-dependent", credence: 0.72}
+(2) [Spectral Sparsity]: FourierFT achieves comparable results via sparse
+    Fourier coefficients, suggesting weight updates are spectrally smooth. #observation
+    [Gao et al. 2024](https://arxiv.org/abs/2405.03003)
+    [evidence](docs/fourierft_spectral.md#L1-L30)
+    > We introduce FourierFT, which treats DeltaW as a matrix in the spatial domain and learns only a small fraction of its spectral coefficients. With the trained spectral coefficients, we implement the inverse discrete Fourier transform to recover DeltaW. Empirically, our FourierFT method shows comparable or better performance with fewer parameters than LoRA on various tasks, including natural language understanding, natural language generation, instruction tuning, and image classification. For example, when performing instruction tuning on the LLaMA2-7B model, FourierFT surpasses LoRA with only 0.064M trainable parameters, compared to LoRA's 33.5M.
+    {reason: "ICML 2024; 500x fewer params than LoRA on LLaMA2 instruction tuning; spectral sparsity is structurally different from SVD", credence: 0.68}
+----
+(3) [Basis Matters More Than Rank]: PiSSA's well-chosen rank-r subspace
+    outperforms RandLoRA's full-rank random subspace, suggesting which
+    directions you update matters more than how many.
+    {reason: "PiSSA at rank r beats LoRA at same rank; RandLoRA at full rank sometimes beats PiSSA but not always. The basis selection (SVD vs random) appears to be the primary factor.", inference: 0.40}
+  -> [Natural Manifold]
+
+// Weak contra (0.40): the rank debate slightly undermines the thesis
+// because if full rank sometimes wins, the SVD manifold might not
+// capture everything. But basis choice dominates rank choice.
+
+
+<Alternative Parameterizations>
+
+(1) [Circulant Structure]: C3A achieves full-rank updates via circulant
+    matrices (FFT-computable), competitive on GLUE and instruction tuning. #observation
+    [Chen et al. 2025](https://arxiv.org/abs/2407.19342)
+    [evidence](docs/c3a_circular_convolution.md#L1-L30)
+    > We introduce Circular Convolution Adaptation (C3A), which not only achieves high-rank adaptation with enhanced performance but also excels in both computational power and memory utilization. **Extensive experiments demonstrate that C3A consistently outperforms LoRA and its variants across various fine-tuning tasks.** Our code is available at Hugging Face PEFT.
+    {reason: "ACL 2025; merged into HuggingFace PEFT; circulant assumption is a strong inductive bias; competitive but not dominant on all benchmarks", credence: 0.62}
+(2) [Hadamard Products]: LoHa's element-wise product of two low-rank
+    decompositions captures pairwise feature interactions that additive
+    low-rank misses. #observation
+    [Nam, Moon, Oh 2022](https://arxiv.org/abs/2108.06098)
+    [evidence](docs/loha_hadamard_product.md#L1-L30)
+    > We propose a communication-efficient parameterization, FedPara, which re-parameterizes weight parameters of layers using low-rank weights followed by the Hadamard product. **Compared to the conventional low-rank parameterization, our FedPara method is not restricted to low-rank constraints, and thereby it has a far larger capacity.** This property enables to achieve comparable performance while requiring 3 to 10 times lower communication costs than the model with the original layers.
+    {reason: "ICLR 2022; effective for vision/diffusion via LyCORIS ecosystem; Hadamard product overcomes low-rank bottleneck; niche for LLMs", credence: 0.55}
+(3) [Kronecker Products]: LoKr's tensor product structure enables compact
+    adaptation across convolutional and linear layers, with systematic
+    evaluation across fine-tuning methodologies. #observation
+    [Yeh et al. 2024](https://arxiv.org/abs/2309.14859)
+    [evidence](docs/lokr_lycor.md#L1-L30)
+    > This paper introduces LyCORIS (Lora beYond Conventional methods, Other Rank adaptation Implementations for Stable diffusion), an open-source library that offers a wide selection of fine-tuning methodologies for Stable Diffusion. Furthermore, we present **a thorough framework for the systematic assessment of varied fine-tuning techniques.** This framework employs a diverse suite of metrics and delves into multiple facets of fine-tuning.
+    {reason: "systematic LyCORIS benchmark; Kronecker/spatial structure assumption less natural for attention weights; mainly validated on diffusion models", credence: 0.50}
+----
+(4) [Multiple Structures Work]: Multiple non-SVD parameterizations (circulant,
+    Hadamard, Kronecker, Fourier) achieve competitive results, suggesting
+    SVD is not the only viable basis.
+    {reason: "variety of working approaches, but none consistently beats SVD methods on controlled benchmarks; SVD has strongest cross-domain evidence", inference: 0.50}
+  -> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 6: FUNCTIONAL ARCHITECTURE
+// Methods: CLOVER, ReFT, X-LoRA, Prompt Tuning
+// ══════════════════════════════════════════════════════════════════════
+
+# Functional Architecture
+
+<Functional Architecture>
+
+(1) [Activation Intervention]: ReFT achieves 15-65x more parameter efficiency
+    than LoRA by intervening on hidden states at specific (layer, position)
+    sites rather than on weights at all. #observation
+    [Wu, Arora et al. 2024](https://arxiv.org/abs/2404.03592)
+    [evidence](docs/reft_representation_finetuning.md#L1-L40)
+    > ReFT methods operate on a frozen base model and learn task-specific interventions on hidden representations. We define a strong instance of the ReFT family, Low-rank Linear Subspace ReFT (LoReFT). (...) **LoReFT uses 15x-65x times fewer parameters while achieving state-of-the-art performance on commonsense reasoning, instruction-following, and natural language understanding** against the strongest PEFTs.
+    {reason: "Stanford NLP; widely cited; strong on instruction following and math. Fundamentally different paradigm (activation vs weight) so comparison not apples-to-apples", credence: 0.72}
+(2) [Compositional Routing]: X-LoRA dynamically routes through expert LoRA
+    adapters, achieving better composite task performance than individual
+    adapters. #assumption
+    {reason: "compositional multi-task; routing adds overhead; more suited to deployment than single-task science", credence: 0.50}
+----
+(3) [Beyond Individual Matrices]: Respecting the model's functional architecture
+    (which matrices cooperate, where activations matter) provides additional
+    efficiency gains beyond weight-matrix-level priors.
+    {reason: "CLOVER (joint SVD) beats per-matrix methods; ReFT (activation intervention) is 15-65x more efficient; both exploit structure LoRA ignores. But evidence is early -- 1-2 papers each.", inference: 0.60}
+  +> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 7: SHARED STRUCTURE AND COMPRESSION
+// Methods: MiSS, VBLoRA, SHiRA, AdaLoRA
+// ══════════════════════════════════════════════════════════════════════
+
+# Compression
+
+<Shared Structure Evidence>
+
+(1) [Adaptive Rank Allocation]: AdaLoRA's SVD-parameterized pruning shows
+    that different layers need different ranks -- query/value projections
+    and early/late layers are most important. #observation
+    [Zhang et al. 2023](https://arxiv.org/abs/2303.10512)
+    [evidence](docs/adalora_adaptive_budget.md#L1-L30)
+    > We propose AdaLoRA, which adaptively allocates the parameter budget among weight matrices according to their importance score. In particular, AdaLoRA parameterizes the incremental updates in the form of singular value decomposition. Such a novel approach allows us to effectively prune the singular values of unimportant updates. (...) **Results demonstrate that AdaLoRA manifests notable improvement over baselines, especially in the low budget settings.**
+    {reason: "ICLR 2023; validates SVD parameterization and adaptive rank; modest gains over LoRA add complexity", credence: 0.70}
+(2) [Vector Bank Compression]: VBLoRA uses 0.4% of LoRA's parameters via
+    shared atomic vectors, suggesting adapter diversity across layers is
+    much lower than assumed. #observation
+    [Li, Han, Ji 2024](https://arxiv.org/abs/2405.15179)
+    [evidence](docs/vblora_vector_bank.md#L1-L30)
+    > Our proposed VB-LoRA composites all the low-rank matrices of LoRA from a shared vector bank with a differentiable top-k admixture module. (...) When fine-tuning the Llama2-13B model, **VB-LoRA only uses 0.4% of LoRA's stored parameters, yet achieves superior results.** This method has been merged into the Hugging Face PEFT package.
+    {reason: "NeurIPS 2024; merged into HuggingFace PEFT; extreme compression is remarkable; implies shared structure across layers", credence: 0.72}
+(3) [Sparse High-Rank]: SHiRA directly fine-tunes 1-2% of base weights
+    selected by importance, achieving full rank without low-rank
+    bottleneck. #observation
+    [Bhardwaj et al. 2024](https://arxiv.org/abs/2406.13175)
+    [evidence](docs/shira_sparse_high_rank.md#L1-L40)
+    > We propose SHiRA, a new high rank adapter paradigm to demonstrate that **changing as few as 1-2% parameters of the original network is sufficient for adaptation.** (...) We conduct extensive experiments on LLMs (LLaMA-7B, LLaMAv2-7B) and LVMs (Stable Diffusion, SDXL) where we demonstrate that SHiRA significantly outperforms LoRA on both single- and multi-adapter tasks. On LLMs, we show that SHiRA achieves up to 2.7% better accuracy than LoRA on commonsense reasoning.
+    {reason: "NeurIPS 2024; Qualcomm; multi-adapter fusion is unique angle; extensive LLM+LVM experiments; challenges low-rank assumption", credence: 0.62}
+----
+(4) [Compression Signals Shared Structure]: The extreme compressibility of
+    adapter weights (VBLoRA 0.4%, SVFT 0.006%) suggests weight updates
+    share structure that priors can exploit.
+    {reason: "multiple methods achieve extreme compression suggesting high redundancy in naive parameterizations; supports the thesis that the right basis captures this shared structure", inference: 0.60}
+  +> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// ADDITIONAL METHODS (Prompt Tuning, LN Tuning, Bone, Trainable Tokens)
+// These are boundary cases that don't strongly support or oppose the thesis
+// ══════════════════════════════════════════════════════════════════════
+
+# Boundary Cases
+
+<Prompt Tuning Orthogonal Paradigm>
+
+(1) [Input Not Weights]: Prompt/prefix tuning modifies the input embedding
+    space rather than weight matrices. At T5-XXL scale, it matches full FT
+    with 0.01% params. #assumption
+    {reason: "scales with model size; conceptually different from weight adaptation; when it works, it suggests the model already has the capability", credence: 0.65}
+----
+(2) [Capability Already Present]: When prompt tuning works, it reveals that
+    the target task is within the model's existing computational capacity --
+    no weight restructuring needed.
+    {reason: "informative boundary: prompt tuning success = no intervention needed; prompt tuning failure = genuine capability gap requiring weight changes", inference: 0.55}
+  +> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// CONTRA: LINEARITY ASSUMPTION
+// ══════════════════════════════════════════════════════════════════════
+
+<SVD Is Linear Decomposition>
+
+(1) [Nonlinear Structure Missed]: SVD is a linear decomposition of a nonlinear
+    system. It captures dominant linear subspaces but may miss nonlinear
+    interactions that matter for complex tasks. #assumption
+    {reason: "fundamental theoretical limitation; no PEFT method addresses this; but empirically SVD methods still win", credence: 0.75}
+(2) [Checkpoint Specific]: SVD basis is model-specific and not transferable
+    across checkpoints without recomputation. #assumption
+    {reason: "practical limitation; PiSSA notes fast SVD takes only seconds, so cost is low", credence: 0.60}
+----
+(3) [Linearity Might Not Matter]: For the adaptations tested so far, linear
+    subspaces suffice. The nonlinear structure may only matter for
+    capabilities not yet probed.
+    {reason: "strong practical success despite theoretical limitation; but we haven't tested on sufficiently hard capability changes", inference: 0.45}
+  -> [Natural Manifold]
