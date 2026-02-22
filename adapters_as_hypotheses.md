@@ -10,7 +10,7 @@ We fine tune transformers effeciently with low rank adapters - adding a new tran
 
 This is an underused source of causal evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. If an adapter generalizes out-of-distribution, the geometric property it exploits is probably causally relevant to behavior, not merely correlated with it.
 
-I went through ~30 PEFT methods in HuggingFace PEFT and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
+I went through ~30 PEFT methods in [HuggingFace PEFT](https://github.com/huggingface/peft) and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
 
 1. **SVD basis matters.** Methods that initialize or constrain updates in the model's own singular-vector basis (PiSSA, SVFT, SSVD, CLOVER, PSOFT) consistently outperform random-basis alternatives at comparable budgets.
 2. **Direction and strength should decouple.** Methods that separate *which way* to move in weight space from *how far* (DoRA, DeLoRA, ROAD, AntiPaSTO) show better stability and sometimes better OOD transfer.
@@ -996,3 +996,10 @@ Before writing this catalog, I thought of adapters mainly as engineering trade-o
 - ReFT-style activation interventions will eventually beat weight-space adapters on parameter efficiency, but weight-space adapters will remain better for deployment (merging into weights). Confidence: 75%.
 
 **Conflict of interest:** The of the strongest OOD results in this catalog is my own work ([AntiPaSTO](https://arxiv.org/abs/2601.07473)). I've tried to grade it honestly, but read the evidence for it with appropriate skepticism. I developed it with the same insights in this document, so it's not entirely suprising that it fits well.
+
+## Related resources
+
+- [HuggingFace PEFT](https://github.com/huggingface/peft) -- library containing most methods surveyed here
+- [PEFT releases](https://github.com/huggingface/peft/releases) -- changelog showing which methods were added when
+- [LoRA developer guide](https://github.com/huggingface/peft/blob/261366de2e40cde64b702d6b9c527081ad850549/docs/source/developer_guides/lora.md) -- implementation details and variants
+- [PEFT conceptual guides](https://github.com/huggingface/peft/tree/261366de2e40cde64b702d6b9c527081ad850549/docs/source/conceptual_guides) -- per-method overviews
