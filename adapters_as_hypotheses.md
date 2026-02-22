@@ -1,12 +1,12 @@
 # Adapters as Representational Hypotheses
 
-*What does each PEFT method believe about transformer internals?*
+*What does each LoRA method believe about transformer internals?*
 
 *Disclaimer: This is an AI-generated and AI-guided iterative survey. It does not speak for me, but I share it in the hope that it is useful. I do believe these themes exist and give us insight about how best to intervene in transformers.*
 
 ## Why care?
 
-Each PEFT adapter constrains *how* you can update pretrained weights. That constraint is a structural hypothesis about transformer internals. When one adapter outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's assumptions get evidential support as a description of the weight manifold.
+We fine tune transformers effeciently with low rank adapters - adding a new transform on each module. Each [PEFT adapter](https://huggingface.co/docs/peft/en/conceptual_guides/adapter) constrains *how* you can update pretrained weights. That constraint is a structural hypothesis about transformer internals. When one adapter outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's assumptions get evidential support as a description of the weight manifold.
 
 This is an underused source of causal evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. If an adapter generalizes out-of-distribution, the geometric property it exploits is probably causally relevant to behavior, not merely correlated with it.
 
@@ -334,7 +334,7 @@ Applied element-wise (no matrix multiply needed at inference). Merges into weigh
 
 ## 11. AntiPaSTO -- Antiparallel Steering via SVD Rotations
 
-*Disclosure: this is my own work. I give it the highest grade here, so read the evidence with appropriate skepticism.*
+*Disclosure: this is my own work. It was developed with this PoV in mind.*
 
 **Paper:** [Clark 2025](https://arxiv.org/abs/2601.07473)
 **Code:** [github.com/wassname/AntiPaSTO](https://github.com/wassname/AntiPaSTO)
