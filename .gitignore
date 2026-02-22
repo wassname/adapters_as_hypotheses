@@ -21,3 +21,5 @@ LESSWRONG_DRAFT.md
 review_draft.py
 .comprehension_lesswrong.json
 *_review.json
+review_draft*.py
+LESSWRONG_DRAFT_review2.json
