@@ -2,19 +2,19 @@
 
 *What does each LoRA method believe about transformer internals?*
 
-*Disclaimer: This is an AI-generated and AI-guided iterative survey. It does not speak for me, but I share it in the hope that it is useful. I do believe these themes exist and give us insight about how best to intervene in transformers.*
+
 
 ## Why care?
 
 We fine tune transformers effeciently with low rank adapters - adding a new transform on each module. Each [PEFT adapter](https://huggingface.co/docs/peft/en/conceptual_guides/adapter) constrains *how* you can update pretrained weights. That constraint is a structural hypothesis about transformer internals. When one adapter outperforms another under controlled conditions -- same model, same data, same parameter budget -- the winner's assumptions get evidential support as a description of the weight manifold.
 
-This is an underused source of causal evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. If an adapter generalizes out-of-distribution, the geometric property it exploits is probably causally relevant to behavior, not merely correlated with it.
+This is an underused source of *suggestive* evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. The evidence is confounded by optimization dynamics (a method can win because its parameterization is optimizer-friendly, not because its structural hypothesis is correct), but the patterns are consistent enough to be worth taking seriously.
 
 I went through ~30 PEFT methods in [HuggingFace PEFT](https://github.com/huggingface/peft) and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
 
-1. **SVD basis matters.** Methods that initialize or constrain updates in the model's own singular-vector basis (PiSSA, SVFT, SSVD, CLOVER, PSOFT) consistently outperform random-basis alternatives at comparable budgets.
-2. **Direction and strength should decouple.** Methods that separate *which way* to move in weight space from *how far* (DoRA, DeLoRA, ROAD, AntiPaSTO) show better stability and sometimes better OOD transfer.
-3. **Much of adaptation is gain control.** Scaling-only methods (IA3, VeRA, LN Tuning) work surprisingly well, suggesting pretrained features are often already sufficient -- the bottleneck is which ones to amplify.
+1. **SVD basis outperforms random-initialized and standard bases.** Methods that initialize or constrain updates in the model's own singular-vector basis (PiSSA, SVFT, SSVD, CLOVER, PSOFT) consistently outperform random-basis alternatives at comparable budgets. SVD is linear and transformers are not, and almost no papers compare against other structured bases (ICA, Fisher eigenvectors, gradient covariance), so "SVD > random" is solid but "SVD is the right basis" is stronger than the data warrants.
+2. **Direction and strength decouple.** Methods that separate *which way* to move in weight space from *how far* (DoRA, DeLoRA, ROAD, AntiPaSTO) show better stability and sometimes better OOD transfer. An honest alternative: this could be an optimization benefit (giving Adam better-conditioned knobs) rather than a structural insight.
+3. **Scaling alone goes far on easy benchmarks.** Scaling-only methods (IA3, VeRA, LN Tuning) work surprisingly well near the pretraining distribution, but hit ceilings on harder tasks. This is a useful lower bound: if your adapter doesn't beat per-channel scaling, the structure it adds isn't buying much.
 
 These three claims are the main takeaway. The catalog below is the evidence.
 
@@ -31,7 +31,7 @@ We grade evidence on independent dimensions. Each method gets points for the dim
 | OOD | 2   | Generalizes out-of-distribution                             |
 | WA  | 1   | Widely adopted: used as baseline by many other papers       |
 
-Total = sum of applicable dimensions (max 8). Higher = stronger evidence that the method's structural hypothesis is correct.
+Total = sum of applicable dimensions (max 8). Higher = stronger suggestive evidence, but note: each method's scores come from its own paper on its own benchmarks, so cross-method comparisons are rough.
 
 ---
 
@@ -966,13 +966,13 @@ Looking across all 33 methods, the successful adapters share a recipe: choose co
 The pattern is strong enough to organize the literature by theme rather than by year.
 
 
-The strongest signal is *basis choice*. SVD-aware methods (PiSSA, SSVD, CLOVER, PSOFT) beat random-basis baselines under similar budgets across multiple independent papers and modalities. Initializing in the model's singular-vector basis reduces the search problem: the optimizer starts in a subspace the model already uses. This is not proof that SVD is uniquely correct, but it is the most replicated finding in the catalog.
+The strongest signal is *basis choice*. SVD-aware methods (PiSSA, SSVD, CLOVER, PSOFT) beat random-initialized and standard-basis baselines under similar budgets across multiple independent papers and modalities. Initializing in the model's singular-vector basis reduces the search problem: the optimizer starts in a subspace the model already uses. But SVD is linear and transformers are not, the advantage could be a warm-start effect, and almost no papers compare against other structured bases (ICA, Fisher eigenvectors, gradient covariance). "SVD > random" is solid; "SVD is the right basis" is stronger than the data warrants.
 
 *Orthogonal* methods add the next constraint. OFT and BOFT show that bounded rotations can preserve useful behavior while adapting. The Cayley parameterization appears across OFT, SSVD, PSOFT, and AntiPaSTO because it keeps rotations orthogonal without projection steps. But pure orthogonality is too rigid when tasks need gain changes -- methods that pair rotations with magnitude control perform better.
 
-The *direction-versus-strength* split follows naturally. DoRA, DeLoRA, ROAD, and AntiPaSTO all separate where to move in weight space from how far to move. In papers with careful ablations, this split improves stability and sometimes final accuracy. Whether this reflects a deep property of transformer computation or mainly an optimization advantage is open, but the practical effect is consistent.
+The *direction-versus-strength* split follows naturally. DoRA, DeLoRA, ROAD, and AntiPaSTO all separate where to move in weight space from how far to move. In papers with careful ablations, this split improves stability and sometimes final accuracy. An honest alternative explanation: Adam already maintains per-parameter second moments; giving it separate magnitude and direction parameters may just give it better-conditioned knobs. Whether this reflects a deep property of transformer computation or mainly an optimization advantage is open, but the practical effect is consistent.
 
-*Gain control* is the simplest and most surprising finding. IA3, VeRA, and LN tuning show that much of adaptation is rescaling existing features, not inventing new ones. This explains tiny parameter budgets working on many tasks, and clarifies where they fail: tasks requiring genuinely new feature combinations.
+*Gain control* is a useful calibration point. IA3, VeRA, and LN tuning show that per-channel rescaling in the standard basis handles a lot near the pretraining distribution, but hits ceilings on harder tasks. The standard basis (channel dimensions) is itself an unexamined assumption -- scaling in SVD basis or a learned basis might work differently. Useful as a lower bound: if your adapter doesn't beat per-channel scaling, the structure it adds isn't buying much.
 
 The *rank* debate is secondary once basis is accounted for. Full-rank updates help on harder tasks (RandLoRA, C3A), but a good low-rank subspace beats a poorly chosen full-rank update (PiSSA, SVFT). "Which subspace" matters more than "how many free directions".
 
@@ -982,11 +982,11 @@ Finally, methods that respect *functional architecture* are promising but early.
 
 Before writing this catalog, I thought of adapters mainly as engineering trade-offs: LoRA is cheap, full FT is better, pick your budget. After reading ~30 papers carefully, I updated on three things:
 
-1. **The SVD basis is probably not arbitrary.** The consistent advantage of SVD-initialized methods (PiSSA > LoRA, SVFT recovering 96% of full FT with 0.006% params, CLOVER's joint SVD beating per-matrix LoRA) is hard to explain as coincidence. The model's singular vectors appear to encode meaningful computational directions that the optimizer discovers faster when given them as a starting point. Strength of evidence: moderate (multiple independent groups, multiple modalities, but all within-paper comparisons).
+1. **The SVD basis outperforms random-initialized and standard bases.** The consistent advantage of SVD-initialized methods (PiSSA > LoRA, SVFT recovering 96% of full FT with 0.006% params, CLOVER's joint SVD beating per-matrix LoRA) is hard to explain as coincidence. The model's singular vectors appear to encode meaningful computational directions that the optimizer discovers faster when given them as a starting point. But SVD is linear and transformers are not; the advantage could be a warm-start effect; and almost no papers compare against other structured bases. "SVD > random" is solid, "SVD is the right basis" remains open. Strength of evidence: moderate (multiple independent groups, multiple modalities, but all within-paper comparisons).
 
-2. **Orthogonality is useful but not sufficient.** OFT/BOFT show that angle-preserving transforms work well when you want to preserve behavior while adapting. But pure orthogonality prevents magnitude changes, which limits it. The best methods (PSOFT, AntiPaSTO, SSVD) pair orthogonal rotations with explicit magnitude/scale controls. This is why DoRA consistently beats LoRA -- it captures the magnitude channel that LoRA conflates with direction.
+2. **Orthogonality is useful but not sufficient.** OFT/BOFT show that angle-preserving transforms work well when you want to preserve behavior while adapting. But pure orthogonality prevents magnitude changes, which limits it. The best methods (PSOFT, AntiPaSTO, SSVD) pair orthogonal rotations with explicit magnitude/scale controls. This is why DoRA consistently beats LoRA -- it captures the magnitude channel that LoRA conflates with direction. Whether this direction/strength decoupling reflects model structure or gives the optimizer better-conditioned knobs is an open question.
 
-3. **Most adaptation is simpler than we assume.** IA3's success with just a per-channel scaling vector, VeRA's success with random projections + learned scaling, and LN Tuning's success with just normalization parameters all point to the same thing: pretrained models already compute most task-relevant features. Adaptation is mostly about *gain control* -- amplifying the right features and suppressing the wrong ones. This has practical implications: if your task mainly needs gain control, use IA3 and save compute. If it needs new feature interactions, you need at least low-rank updates.
+3. **Scaling alone goes far on easy benchmarks.** IA3's success with just a per-channel scaling vector, VeRA's success with random projections + learned scaling, and LN Tuning's success with just normalization parameters suggest pretrained models already compute most task-relevant features near the pretraining distribution. But these methods all land in the lowest evidence tier and hit clear ceilings on harder tasks. The takeaway is probably "easy benchmarks don't require new features" rather than "gain control is all you need." Useful as a lower bound: if your adapter doesn't beat per-channel scaling, the structure it adds isn't buying much.
 
 ### Predictions
 
@@ -996,6 +996,8 @@ Before writing this catalog, I thought of adapters mainly as engineering trade-o
 - ReFT-style activation interventions will eventually beat weight-space adapters on parameter efficiency, but weight-space adapters will remain better for deployment (merging into weights). Confidence: 75%.
 
 **Conflict of interest:** The of the strongest OOD results in this catalog is my own work ([AntiPaSTO](https://arxiv.org/abs/2601.07473)). I've tried to grade it honestly, but read the evidence for it with appropriate skepticism. I developed it with the same insights in this document, so it's not entirely suprising that it fits well.
+
+*Disclaimer: This is an AI-guided iterative survey. I can't vouch for every claim, but I do think adapter papers give us empirical clues about transformer internals that should inform steering and interpretability work.*
 
 ## Related resources
 
