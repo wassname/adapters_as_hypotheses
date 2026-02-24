@@ -5,9 +5,9 @@ tl;dr: some transformer interventions work very well. Hypersphere rotation, SVD,
 
 Adapter fine-tuning papers (like [LoRA](https://en.wikipedia.org/wiki/LoRA_(machine_learning))) are usually read as engineering races, but they are also experiments about model geometry.
 
-We fine-tune transformers efficiently with low-rank adapters -- adding a constrained update to each weight matrix. Each adapter's constraint is also a hypothesis about model geometry -- about which transformations preserve useful computation and which directions in weight space matter. When one constrained adapter reliably beats another under similar budget, that is suggestive evidence about representation, not just optimization.
+We fine-tune transformers efficiently with low-rank adapters -- adding a constrained update to each weight matrix. Each adapter's constraint is also a hypothesis about model geometry -- about which transformations preserve useful computation and which directions in weight space matter. When one constrained adapter reliably beats another under similar budget, that tells us something about representation, not only optimization.
 
-So the claim: adapter papers are an underused source of *intervention* evidence for interpretability, if we read them as hypothesis tests rather than benchmark performance.
+So the claim: adapter papers are an underused source of *suggestive* evidence for interpretability, if we read them as hypothesis tests rather than benchmark races. The evidence is confounded by optimization dynamics (a method can win because its parameterization is optimizer-friendly, not because its structural hypothesis is correct), but the patterns are consistent enough to be worth taking seriously.
 
 ## Why this matters for interpretability
 
@@ -15,12 +15,12 @@ We want to understand how transformers work. There are many approaches -- probin
 
 GDM's interpretability team put this well in their ["pragmatic interpretability"](https://www.lesswrong.com/posts/StENzDcD3kpfGJssR/a-pragmatic-vision-for-interpretability) post: empirical feedback on which structural assumptions hold up. Adapter benchmarks are exactly this kind of feedback -- I made a similar argument in my [AntiPaSTO paper](https://arxiv.org/abs/2601.07473), arriving there from the adapter side.
 
-The adapter literature is a natural experiment. Each method constrains the *form* of the weight update. When a constrained method matches or beats an unconstrained one, that supports the possibility that the constraint aligns with real structure in the weight manifold. When it generalizes OOD, the case for causal relevance is stronger.
+The adapter literature is a natural experiment. Each method constrains the *form* of the weight update. When a constrained method matches or beats an unconstrained one, that's at least consistent with the constraint matching real structure in the weight manifold. When it also generalizes OOD, the case gets stronger.
 
 
 ## What the evidence says
 
-### 1. The SVD basis is the natural coordinate system
+### 1. The model's own SVD basis outperforms activation addition
 
 Methods that use the model's own SVD decomposition often outperform random-basis methods in reported setups at similar parameter count:
 
@@ -28,7 +28,7 @@ Methods that use the model's own SVD decomposition often outperform random-basis
 - **SVFT**: Fix both singular vector sets from $W$'s SVD, learn only sparse coefficients. Recovers 96% of full FT performance with 0.006% of parameters. LoRA/DoRA recover only 85% with 0.03-0.8%.
 - **SSVD**: Rotate right singular vectors (Cayley transform), shift singular values, keep left singular vectors fixed. Matches LoRA with 10M fewer params on domain-shifted ASR.
 
-The message: the SVD basis is not just a mathematical convenience. In current benchmarks, it appears to provide useful adaptation coordinates.
+This is the most replicated finding in the catalog, but comes with caveats. SVD is linear; transformers are not. The advantage could be a warm-start effect (initializing closer to pretrained weights) rather than evidence that singular vectors are semantically meaningful directions. And crucially, almost no papers compare SVD against other structured bases (ICA, Fisher eigenvectors, gradient covariance). The evidence supports "SVD > random" solidly, but "SVD is the right basis" is a stronger claim than the data warrants.
 
 ### 2. Orthogonal adapters preserve something real
 
@@ -44,13 +44,13 @@ Three independent teams converged on the same design: separate *what to change* 
 - **DeLoRA** (ICLR 2025): Normalize each rank-1 component, introduce learnable scalar $\lambda$. Better robustness to learning rate.
 - **ROAD**: 2D rotary adaptation with explicit angle $\theta$ and magnitude $\alpha$.
 
-When you don't decouple them (standard LoRA), optimization can entangle direction and magnitude updates. Testable prediction: methods that decouple direction from strength may show better OOD transfer, because direction can encode *what* to change while strength can encode *how much*.
+When you don't decouple them (standard LoRA), the optimizer has to manage both through the same parameters. An honest alternative explanation: this could be an optimization benefit rather than a structural insight. Adam already maintains per-parameter second moments; giving it separate magnitude and direction parameters may just give it better-conditioned knobs. A test: does the advantage survive under SGD? If not, it's optimizer-friendly parameterization, not evidence about model geometry.
 
-### 4. Scaling alone goes surprisingly far
+### 4. Scaling alone goes further than I expected on easy benchmarks
 
-**IA3** learns nothing but a per-channel scaling vector ($\lambda \in \mathbb{R}^d$, initialized to 1). With T0-3B, it outperforms ICL with GPT-3 175B on Super-NaturalInstructions. **LN Tuning** learns only LayerNorm affine parameters (~0.5% of model).
+**IA3** learns nothing but a per-channel scaling vector ($\lambda \in \mathbb{R}^d$, initialized to 1) in the standard basis. With T0-3B, it outperforms ICL with GPT-3 175B on Super-NaturalInstructions. **LN Tuning** learns only LayerNorm affine parameters (~0.5% of model).
 
-A substantial fraction of "task adaptation" can be reweighting existing features -- gain control over channels. In those settings, the bottleneck is often selection rather than new feature creation. When scaling fails, new feature combinations are likely needed.
+On benchmarks close to the pretraining distribution, a lot of "task adaptation" is reweighting existing features -- gain control over channels. Note that this is gain control in the standard basis (channel dimensions), which is itself an assumption. Scaling in SVD basis or a learned basis might work differently. And the methods backing this claim (IA3, VeRA, LN Tuning) all land in the lowest evidence tier of the scoring -- they work on easy tasks but hit clear ceilings on harder ones. The conclusion is probably "easy benchmarks don't require new features" rather than "transformers only need gain control."
 
 ## Design lineages
 
@@ -82,7 +82,7 @@ I went through ~30 adapter methods in [HuggingFace PEFT](https://github.com/hugg
 | WA  | 1   | Widely adopted as baseline |
 | **Total** | **8** | 1+1+1.5+1.5+2+1 |
 
-Score = sum of earned dimensions. Higher = stronger evidence that the method's structural hypothesis is correct.
+Score = sum of earned dimensions. Higher = stronger suggestive evidence, but note: each method's scores come from its own paper on its own benchmarks, so cross-method comparisons are rough.
 
 ### Scorecard (top methods)
 
@@ -109,8 +109,9 @@ The full catalog with pseudocode is at [github.com/wassname/adapters_as_hypothes
 - **Controlled comparisons are rare.** Many papers compare against LoRA with different hyperparameters, different scales, different tasks. The cleanest evidence comes from papers that do careful all-else-equal ablations (DoRA, PiSSA, SSVD).
 - **Publication bias.** Methods that don't work don't get published. The catalog over-represents "successful" hypotheses.
 - **My own bias.** I developed AntiPaSTO with these insights in mind, so it's unsurprising it scores well under criteria that match its design goals. I can't be fully objective here.
+- **Optimization vs structure.** The deepest confound throughout: a method can win because its parameterization is optimizer-friendly (better conditioning, implicit regularization, warm start) rather than because its structural hypothesis about the model is correct. Almost none of these papers disentangle the two. PiSSA's SVD advantage could be warm-start proximity. DoRA's decoupling could be giving Adam better-conditioned knobs. The "evidence for model geometry" framing is suggestive, not conclusive.
 
-*Disclaimer: This is an AI-guided iterative survey. It does not speak for me, but I share it in the hope that it is useful. I do think this is strong evidence of how to intervene in transformers.*
+*Disclaimer: This is an AI-guided iterative survey. I can't support every opinion or fact but I do think that these adapter papers give us strong emperical clues abotu the best way to view transformer internals. I think these clues should be used in steering and interpretebility*
 
 ## The repo
 
