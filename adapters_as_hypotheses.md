@@ -1003,3 +1003,14 @@ Before writing this catalog, I thought of adapters mainly as engineering trade-o
 - [PEFT releases](https://github.com/huggingface/peft/releases) -- changelog showing which methods were added when
 - [LoRA developer guide](https://github.com/huggingface/peft/blob/261366de2e40cde64b702d6b9c527081ad850549/docs/source/developer_guides/lora.md) -- implementation details and variants
 - [PEFT conceptual guides](https://github.com/huggingface/peft/tree/261366de2e40cde64b702d6b9c527081ad850549/docs/source/conceptual_guides) -- per-method overviews
+
+## Citation
+
+```bibtex
+@misc{wassname2026adaptershypotheses,
+  title = {Adapters as Hypotheses},
+  author = {Michael J. Clark},
+  year = {2026},
+  url = {https://github.com/wassname/adapters_as_hypotheses}
+}
+```
