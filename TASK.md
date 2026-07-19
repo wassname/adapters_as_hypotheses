@@ -2,9 +2,15 @@ TASK write a new file, from the old part.
 
 ## Status: DONE
 
+### Extension: flatness- and curvature-aware adapters
+- [x] Freeze primary texts for BAR, FMLoRA/EFMLoRA, Bi-LoRA, LoRA-MGPO, and DISAM under `docs/`
+- [x] Expand the catalog from 34 to 38 methods with pseudocode and calibrated evidence summaries
+- [x] Separate flatness seeking, explicit low-loss curvature, and function/context curvature in Theme 8
+- [x] UAT: [catalog](adapters_as_hypotheses.md) has 38 sequential entries and 36 active pseudocode blocks; [evidence map](adapters_vargdown.argdown) has seven new verbatim quote blocks within their linked line ranges; fresh-eyes review confirmed the corrected EFMLoRA math and curvature taxonomy
+
 ### Task 1: adapters_as_hypotheses.md
 - [x] Preamble with pragmatic interpretability framing
-- [x] 34 catalog entries; 32 active methods have pseudocode, while deprecated Bone and out-of-scope Trainable Tokens are marked as boundary entries
+- [x] 38 catalog entries; 36 active methods have pseudocode, while deprecated Bone and out-of-scope Trainable Tokens are marked as boundary entries
 - [x] All papers saved to docs/ (full size, no truncation)
 - [x] Sub-agent review completed, fixes applied
 

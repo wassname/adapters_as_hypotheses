@@ -1,6 +1,6 @@
 ===
 title: Adapters as Representational Hypotheses -- Which Geometric Priors About Transformer Internals Hold Under Intervention?
-author: Compiled from 34 PEFT methods plus adjacent evidence (2021--2026)
+author: Compiled from 38 PEFT methods plus adjacent evidence (2021--2026)
 model:
     mode: strict
 ===
@@ -426,25 +426,29 @@ model:
   +> [Natural Manifold]
 
 
-// ══════════════════════════════════════════════════════════════════════
-// THEME 8: CURVATURE IS SPACE-SPECIFIC
-// Adapter: Flat-LoRA. Adjacent evidence: CrispEdit, SGD subspaces,
-// sharpness counterexamples, TRAM, and steering generalization.
-// ══════════════════════════════════════════════════════════════════════
+// Claude: ══════════════════════════════════════════════════════════════
+// Claude: THEME 8: FLATNESS AND CURVATURE ARE SPACE-SPECIFIC
+// Claude: Flatness-seeking family: Flat-LoRA, FMLoRA, Bi-LoRA, MGPO;
+// Claude: BAR is the SAM-balancedness surrogate.
+// Claude: Adjacent evidence: CrispEdit, DISAM, SGD subspaces, sharpness
+// Claude: counterexamples, TRAM, and steering generalization.
+// Claude: ══════════════════════════════════════════════════════════════
 
 # Curvature
 
-[Curvature Is Space-Specific]: Curvature only becomes an intervention
-  hypothesis after naming the scalar landscape and the space or path in
-  which it is measured. Weight-, capability-, and function-space curvature
-  make different predictions about robustness and generalization.
-  + <Full Weight Flatness>
+[Curvature Is Space-Specific]: Flatness and curvature are related, but the
+  differentiated variable must be named. Perturbation-based flatness seeking,
+  explicit Hessian or Gauss-Newton eigenspace constraints, and function or
+  context curvature make different predictions about generalization.
+  + <Flatness Seeking Adapters>
+  + <Explicit Low Loss Curvature>
   + <Curvature Direction Ambiguity>
+  + <Flatness Under Domain Shift>
   + <Flatness OOD Limits>
   + <Function Space Curvature>
 
 
-<Full Weight Flatness>
+<Flatness Seeking Adapters>
 
 (1) [Flat-LoRA Smooths Merged Weights]: Flat-LoRA trains low-rank factors
     under random perturbations of the merged weight matrix so the solution
@@ -453,7 +457,49 @@ model:
     [evidence](docs/flat_lora_full_parameter_flatness.md#L1-L35)
     > Despite recent progress in improving LoRA’s performance, the relationship between the LoRA optimization space and the full parameter space is often overlooked. **A solution that appears flat in the loss landscape of the LoRA space may still exhibit sharp directions in the full parameter space, potentially compromising generalization. We introduce Flat-LoRA, which aims to identify a low-rank adaptation situated in a flat region of the full parameter space.** Instead of adopting the well-established sharpness-aware minimization approach, which incurs significant computation and memory overheads, we employ a Bayesian expectation loss objective to preserve training efficiency. Further, we design a refined random perturbation generation strategy for improved performance and carefully manage memory overhead using random seeds.
     {reason: "ICML 2025; authors' abstract for their own method; the main perturbation scheme covers adapted linear matrices, while all-layer perturbation is reported separately in the appendix; no independent replication found", credence: 0.78}
-(2) [CrispEdit Protects Capability Loss]: CrispEdit projects model-editing
+(2) [BAR Makes SAM Balancedness Explicit]: BAR replaces SAM's extra
+    adversarial step with a factor-norm regularizer derived from the claimed
+    implicit balancedness dynamics of SAM. #observation
+    [Li, Zhang, He 2024](https://arxiv.org/abs/2410.14802)
+    [evidence](docs/bar_balancedness_aware_regularization.md#L15-L29)
+    > Sharpness-aware minimization (SAM) improves generalization of various deep learning tasks. Motivated by popular architectures such as LoRA, we explore the implicit regularization of SAM for scale-invariant problems involving two groups of variables. **Instead of focusing on commonly used sharpness, this work introduces a concept termed balancedness, defined as the difference between the squared norm of two variables.** This allows us to depict richer global behaviors of SAM. In particular, our theoretical and empirical findings reveal that i) SAM promotes balancedness; and ii) the regularization on balancedness is data-responsive – outliers have stronger impact. The latter coincides with empirical observations that SAM outperforms SGD in the presence of outliers. Leveraging the implicit regularization, we develop a resource-efficient SAM variant, balancedness-aware regularization (BAR), tailored for scale-invariant problems such as finetuning language models with LoRA.
+    {reason: "NeurIPS 2024; authors' abstract and theoretical framing; BAR is reused as a baseline by Flat-LoRA, FMLoRA, and Bi-LoRA, but its tests are few-shot or ordinary held-out rather than controlled OOD", credence: 0.82}
+(3) [FMLoRA Transfers Full-Space Perturbations]: FMLoRA reconstructs a
+    full-weight SAM direction from LoRA gradients and transfers it into one
+    factor; EFMLoRA reuses an EMA perturbation for near-LoRA cost. #observation
+    [Deng et al. 2025](https://arxiv.org/abs/2508.00522)
+    [evidence](docs/fmlora_flat_minima_lora.md#L8-L28)
+    > Little research explores the correlation between the expressive ability and generalization ability of the low-rank adaptation (LoRA). Sharpness-Aware Minimization (SAM) improves model generalization for both Convolutional Neural Networks (CNNs) and Transformers by encouraging convergence to locally flat minima. However, the connection between sharpness and generalization has not been fully explored for LoRA due to the lack of tools to either empirically seek flat minima or develop theoretical methods. **In this work, we propose Flat Minima LoRA (FMLoRA) and its efficient version i.e., EFMLoRA, to seek flat minima for LoRA. Concretely, we theoretically demonstrate that perturbations in the full parameter space can be transferred to the low-rank subspace.** This approach eliminates the potential interference introduced by perturbations across multiple matrices in the low-rank subspace. Our extensive experiments on large language models and vision-language models demonstrate that EFMLoRA achieves optimize efficiency comparable to that of LoRA while simultaneously attaining comparable or even better performance. For example, on the GLUE dataset with RoBERTa-large, EFMLoRA outperforms LoRA and full fine-tuning by 1.0% and 0.5% on average, respectively. On vision-language models e.g., Qwen-VL-Chat, there are performance improvements of 1.5% and 1.0% on the SQA and VizWiz datasets, respectively. These empirical results also verify that the generalization of LoRA is closely related to sharpness, which is omitted by previous methods.
+    {reason: "AAAI 2026; authors' abstract and own benchmark comparisons; reported gains cover several architectures, but the claimed distribution shift is mostly few-shot or ordinary downstream evaluation", credence: 0.72}
+(4) [Bi-LoRA Separates Descent and Ascent]: Bi-LoRA trains a primary LoRA
+    branch for task descent and an auxiliary low-rank branch for adversarial
+    ascent, then discards the auxiliary branch. #observation
+    [Liu et al. 2025](https://arxiv.org/abs/2508.19564)
+    [evidence](docs/bi_lora_sharpness_aware.md#L16-L20)
+    > Low-Rank Adaptation (LoRA) enables parameter-efficient fine-tuning of large pre-trained models. Yet LoRA can face generalization challenges. One promising way to improve the generalization is Sharpness-Aware Minimization (SAM), which has proven effective for small-scale training scenarios. **In this paper, we propose Bi-directional Lo w-R ank A daptation (Bi-LoRA), which introduces an auxiliary adversarial LoRA module. This design explicitly decouples sharpness optimization, handled by the auxiliary module, from task adaptation, performed by the primary module.** Such a separation yields two key benefits. First, it transforms SAM’s sequential computation of adversarial perturbation and gradient descent into a parallel form, which roughly halves the time and conquers the main obstacle of applying SAM in LoRA. Second, it provides perturbations from the auxiliary module that do not collapse into the restricted optimization subspace of the primary module, enabling broader sharpness exploration and flatter minima. Bi-LoRA simultaneously achieves both efficiency and effectiveness within a single framework, as validated by extensive experiments across diverse architectures and tasks.
+    {reason: "ICLR 2026; authors' method section; same-paper comparisons mostly favor Bi-LoRA over LoRA, LoRA-SAM, and Flat-LoRA on cross-dataset LLM tests, without a controlled domain-generalization protocol", credence: 0.76}
+(5) [MGPO Reuses Optimizer Momentum]: LoRA-MGPO perturbs trainable LoRA
+    factors along the optimizer's previous first moment and normalizes the
+    radius with an EMA of gradient norms. #observation
+    [Chang et al. 2025](https://aclanthology.org/2025.findings-emnlp.34/)
+    [evidence](docs/lora_mgpo_momentum_perturbation.md#L28-L34)
+    > Parameter-efficient fine-tuning (PEFT), partic-ularly Low-Rank Adaptation (LoRA), adapts large language models (LLMs) by training only a small fraction of parameters. However, as the rank of the low-rank matrices used for adap-tation increases, LoRA often exhibits an un-stable "double descent" phenomenon, charac-terized by transient divergence in the training loss, which delays convergence and impairs generalization by causing instability due to the attraction to sharp local minima. **To address this, we introduce LoRA-MGPO , a framework that incorporates Momentum-Guided Pertur-bation Optimization (MGPO). MGPO stabi-lizes training dynamics by mitigating the dou-ble descent phenomenon and guiding weight perturbations using momentum vectors from the optimizer’s state, thus avoiding dual gra-dient computations.** Additionally, an adaptive normalization scheme scales the magnitude of perturbations based on an exponential mov-ing average (EMA) of gradient norms, further enhancing stability. While EMA controls the magnitude of the perturbations, MGPO guides their direction, ensuring a more stable opti-mization trajectory.
+    {reason: "Findings EMNLP 2025; authors' method section and released code; improvements are conventional NLU and cross-dataset NLG results, while the link to flat minima is indirect", credence: 0.64}
+----
+(6) [Flatness Seeking Is Indirect Curvature Control]: Flat-LoRA, FMLoRA,
+    Bi-LoRA, and MGPO seek low loss in a finite weight neighborhood; BAR
+    instead isolates factor balancedness as a proposed implicit effect of
+    SAM. Near a stationary point the four neighborhood objectives are
+    sensitive to the largest Hessian eigenvalues, but none of the five
+    computes a Hessian eigenspace or restricts updates to low-eigenvalue
+    directions.
+    {reason: "local Taylor expansion links neighborhood sharpness to curvature; BAR implements a derived surrogate, and the other four implement perturbation objectives rather than spectral projection", inference: 0.90}
+  +> [Curvature Is Space-Specific]
+
+
+<Explicit Low Loss Curvature>
+
+(1) [CrispEdit Protects Capability Loss]: CrispEdit projects model-editing
     updates into the low-curvature subspace of a separate capability loss,
     estimated with Gauss-Newton curvature and K-FAC. #observation
     [Ikram et al. 2026](https://arxiv.org/abs/2602.15823)
@@ -461,11 +507,11 @@ model:
     > We present CrispEdit, a scalable and principled second-order editing algorithm that treats capability preservation as an explicit constraint, unifying and generalizing several existing editing approaches. **CrispEdit formulates editing as constrained optimization and enforces the constraint by projecting edit updates onto the low-curvature subspace of the capability-loss landscape.** At the crux of CrispEdit is expressing capability constraint via Bregman divergence, whose quadratic form yields the Gauss–Newton Hessian exactly and even when the base model is not trained to convergence. We make this second-order procedure efficient at the LLM scale using Kronecker-factored approximate curvature (K-FAC) and a novel matrix-free projector that exploits Kronecker structure to avoid constructing massive projection matrices.
     {reason: "May 2026 preprint; authors' abstract for a model-editing method rather than an adapter; capability is evaluated on a designated reference set", credence: 0.66}
 ----
-(3) [Low Curvature Protects the Chosen Loss]: Flat-LoRA seeks task-loss
-    insensitivity around merged weights; CrispEdit seeks capability-loss
-    insensitivity along edit directions. Neither makes low curvature a
+(2) [Low Curvature Protects the Chosen Loss]: CrispEdit's spectral projector
+    protects a designated capability loss. This is the closest prior art to
+    an explicit low-loss-curvature adapter, but it does not make curvature a
     detector of the target behavior's semantic depth.
-    {reason: "the methods constrain different scalar landscapes; the distinction follows from their objectives rather than their reported benchmark gains", inference: 0.82}
+    {reason: "CrispEdit names the protected scalar loss and reference set; projecting an update away from its stiff directions says what is preserved, not why the edited behavior generalizes", inference: 0.84}
   +> [Curvature Is Space-Specific]
 
 
@@ -491,6 +537,33 @@ model:
     optimizers. Together they make a universal high- or low-curvature
     prescription improbable.
     {reason: "the apparent conflict is largely regime-dependent; the safe conclusion is that the scalar objective and optimizer must be specified", inference: 0.72}
+  +> [Curvature Is Space-Specific]
+
+
+<Flatness Under Domain Shift>
+
+(1) [Plain SAM Can Fail Under Domain Shift]: DISAM's authors report that
+    ordinary SAM can underperform ERM when source domains converge at
+    different rates. #observation
+    [Zhang et al. 2024](https://arxiv.org/abs/2405.18861)
+    [evidence](docs/disam_domain_shift_sharpness.md#L46-L58)
+    > Nonetheless, these methods cannot solve generalizability scenarios that involve training data of multiple domains with domain shifts like Domain Generalization (DG) (Ben-David et al., 2010; Li et al., 2017). **In this study, we observed that sometimes SAM even has a detrimental impact in situations where there exist domain shifts across multiple domains as shown in Figure 1(1(a)).** While a few studies have incorporated SAM-based methods in domain generalization tasks (Wang et al., 2023b; Foret et al., 2021), they cannot ensure consistent improvements in generalizability during domain shifts due to their reliance on the i.i.d assumption. Upon a thorough analysis of the behavior of SAM under domain shifts, we discovered that the degradation of the training process caused by SAM from the disparity in convergence degree among different domains as shown in Figure 1(1(a)). Given the inconsistency in the degree and direction of convergence among different domains during training (Arjovsky et al., 2019; Krueger et al., 2021), the straightforward application of SAM for perturbations may not only disrupt convergence but also generate perturbation directions that are not adequately coherent to the geometric characteristics of the entire loss landscape.
+    {reason: "ICLR 2024; authors' diagnosis from DomainBed experiments; this directly limits the inference from ordinary SAM or flat-adapter gains to OOD transfer", credence: 0.83}
+(2) [DISAM Uses a Genuine OOD Protocol]: DISAM calibrates the SAM
+    perturbation using source-domain loss variance and evaluates on domains
+    excluded from training. #observation
+    [Zhang et al. 2024](https://arxiv.org/abs/2405.18861)
+    [evidence](docs/disam_domain_shift_sharpness.md#L1611-L1627)
+    > We evaluate DISAM on five datasets PACS (Li et al., 2017), VLCS (Fang et al., 2013) OfficeHome (Venkateswara et al., 2017), TerraIncognita (Beery et al., 2018) (abbreviated as TerraInc), and DomainNet (Peng et al., 2019), following the DomainBed benchmark (Gulrajani & Lopez-Paz, 2021). For fair comparison, we adhere to the training and evaluation protocol outlined in DomainBed. Evaluation. **The standard leave-one-domain-out strategy is used in evaluation. Specially, the unseen domain is used to evaluate the out-of-domain generalization, and the validation sets of source domains are used to measure the in-domain generalization, while the others are used for training.** Final accuracy is averaged across all settings, and the performance is the averaging over three trials with distinct random seeds. Detailed statistics for each case of all datasets are provided in Appendix C.
+    [evidence](docs/disam_domain_shift_sharpness.md#L2186-L2192)
+    > We propose incorporating our domain-inspired adaptive adjustment into three SAM-based methods: SAM (Foret et al., 2021), GSAM (Zhuang et al., 2022), and SAGM (Wang et al., 2023b) on five datasets of DomainBed with ResNet50 backbone. Table 1 shows that our Domain-Inspired SAM can mitigate issues arising from SAM’s training under domain shifts, by comparing averaged in-domain and out-of-domain performance of leading SAM methods, with and without DISAM. In-domain results show domain-inspired perturbations enhance convergence, especially on the TerraInc dataset with substantial domain gaps. **In Out-of-domain results, DISAM consistently improves generalization, with average improvements of 1.9% for SAM, 1.7% for GSAM, and 1.9% for SAGM.** Notably, SAM performs well when the performance gap between in-domain and out-of-domain is small but worse than ERM on datasets like TerraInc with large gaps, which proves our analysis of SAM’s shortcomings under domain shifts. This shows SAM’s inconsistent convergence for large domain shifts, which DISAM addresses by incorporating domain-inspired adaptive adjustments based on domain-level convergence degree. Incorporating CORAL constraints, a recognized effective traditional DG method on DomainBed improves SAGM with DISAM and sets new state-of-the-art results on all settings.
+    {reason: "ICLR 2024; standard leave-one-domain-out DomainBed protocol over five datasets, three trials, plus CLIP prompt-tuning experiments; author-reported results but materially stronger OOD evidence than downstream test accuracy", credence: 0.86}
+----
+(3) [OOD Flatness Needs Shift Information]: DISAM is not a LoRA adapter,
+    but it is strong evidence against treating generic weight-space flatness
+    as domain-general by default. Its gains require domain labels and a
+    domain-loss variance term when constructing the perturbation.
+    {reason: "plain SAM sometimes loses to ERM while domain-calibrated SAM improves leave-one-domain-out accuracy; the added domain information, not flatness alone, distinguishes the methods", inference: 0.82}
   +> [Curvature Is Space-Specific]
 
 

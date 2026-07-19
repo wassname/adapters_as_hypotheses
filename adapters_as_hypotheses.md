@@ -10,7 +10,7 @@ We fine tune transformers effeciently with low rank adapters - adding a new tran
 
 This is an underused source of *suggestive* evidence. Most interpretability *observes* (probing, SAEs); adapters *intervene*. If a structural constraint helps, the structure it encodes is load-bearing. The evidence is confounded by optimization dynamics (a method can win because its parameterization is optimizer-friendly, not because its structural hypothesis is correct), but the patterns are consistent enough to be worth taking seriously.
 
-I went through 34 PEFT methods in [HuggingFace PEFT](https://github.com/huggingface/peft) and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
+I went through 38 PEFT methods in [HuggingFace PEFT](https://github.com/huggingface/peft) and the broader literature. For each one I extracted pseudocode for the intervention, stated the hypothesis it encodes, and weighed the evidence. Three claims emerged:
 
 1. **SVD basis outperforms random-initialized and standard bases.** Methods that initialize or constrain updates in the model's own singular-vector basis (PiSSA, SVFT, SSVD, CLOVER, PSOFT) consistently outperform random-basis alternatives at comparable budgets. SVD is linear and transformers are not, and almost no papers compare against other structured bases (ICA, Fisher eigenvectors, gradient covariance), so "SVD > random" is solid but "SVD is the right basis" is stronger than the data warrants.
 2. **Direction and strength decouple.** Methods that separate *which way* to move in weight space from *how far* (DoRA, DeLoRA, ROAD, AntiPaSTO) show better stability and sometimes better OOD transfer. An honest alternative: this could be an optimization benefit (giving Adam better-conditioned knobs) rather than a structural insight.
@@ -940,6 +940,109 @@ def flat_lora_loss(x, y, W, A, B, σ):
 
 ---
 
+## 35. BAR -- Balancedness-Aware Regularization
+
+**Paper:** [Li, Zhang, He 2024](https://arxiv.org/abs/2410.14802) (NeurIPS 2024)
+**Code:** [github.com/BingcongLi/BAR](https://github.com/BingcongLi/BAR)
+**Saved:** [docs/bar_balancedness_aware_regularization.md](docs/bar_balancedness_aware_regularization.md)
+
+**Hypothesis:** Much of SAM's benefit for factorized adapters comes from balancing the norms of LoRA's two factors, rather than directly minimizing Hessian curvature. BAR makes that implicit effect explicit. Its nBAR variant expands one factor and contracts the other according to their gradient norms, then applies the ordinary optimizer update.
+
+```py
+# Claude: nBAR training step
+def nbar_step(loss, W, A, B, α, η, optimizer):
+    g_A, g_B = ∇(loss(W + B @ A), (A, B))
+    s = +1 if norm(g_A) >= norm(g_B) else -1
+    A ← (1 + s * α * η) * A
+    B ← (1 - s * α * η) * B
+    A, B ← optimizer.step((A, B), (g_A, g_B))
+    return A, B
+```
+
+**Evidence:** The authors report few-shot OPT-1.3B averages of 78.5 for oBAR and 79.2 for nBAR, versus 77.6 for LoRA and 78.4 for LoRA-SAM. BAR runs at about 1.03--1.05x LoRA in those experiments, while LoRA-SAM takes 3.28--4.43x. RoBERTa and GPT-2 experiments also favor BAR in most reported comparisons. These are few-shot and ordinary held-out evaluations, not controlled OOD tests; balancedness is a proposed explanation for SAM's benefit rather than a curvature estimate.
+
+**Grade:** PE+BL+DE=3.5 (beats LoRA in few-shot tests and retains near-LoRA training cost)
+
+---
+
+## 36. FMLoRA / EFMLoRA -- Flat Minima LoRA
+
+**Paper:** [Deng et al. 2025](https://arxiv.org/abs/2508.00522) (AAAI 2026)
+**Saved:** [docs/fmlora_flat_minima_lora.md](docs/fmlora_flat_minima_lora.md)
+
+**Hypothesis:** A full-weight SAM perturbation can be reconstructed from LoRA-factor gradients and represented by perturbing only one LoRA factor. FMLoRA performs the two-step SAM update; EFMLoRA reuses an exponential moving average of previous perturbations to recover one-forward, one-backward training.
+
+```py
+# Claude: EFMLoRA training step
+def efmlora_step(loss, W, A, B, Ê_B, ρ, β, scale, optimizer):
+    g_A, g_B = ∇(loss(W + scale * (B + Ê_B) @ A), (A, B))
+    Ĝ_W = 0.5 / scale * (g_B @ pinv(A.T) + pinv((B + Ê_B).T) @ g_A)
+    E_W = ρ * Ĝ_W / norm(Ĝ_W)               # Claude: full-weight SAM direction
+    E_B = E_W @ pinv(A) / scale               # Claude: transfer into one LoRA factor
+    A, B ← optimizer.step((A, B), (g_A, g_B))
+    Ê_B ← (1 - β) * Ê_B + β * E_B
+    return A, B, Ê_B
+```
+
+**Evidence:** The authors report RoBERTa few-shot averages of 83.1 for FMLoRA and 82.3 for EFMLoRA, versus 80.0 for LoRA and 81.3 for LoRA-SAM. On full GLUE fine-tuning, EFMLoRA averages 89.4 versus 88.4 for LoRA and 88.9 for full fine-tuning. The paper also reports gains on GPT-2, CLIP few-shot classification, and Qwen-VL-Chat. Its "distribution shift" language mostly refers to few-shot transfer or ordinary downstream test sets; it does not use a leave-one-domain-out OOD protocol.
+
+**Grade:** PE+BL+BF+DE=5 (beats LoRA, slightly beats full FT on reported averages, and is strongest in few-shot settings)
+
+---
+
+## 37. Bi-LoRA -- Bi-directional Low-Rank Adaptation
+
+**Paper:** [Liu et al. 2025](https://arxiv.org/abs/2508.19564) (ICLR 2026)
+**Code:** [github.com/CrazyElements/Bi-LoRA](https://github.com/CrazyElements/Bi-LoRA)
+**Saved:** [docs/bi_lora_sharpness_aware.md](docs/bi_lora_sharpness_aware.md)
+
+**Hypothesis:** Task adaptation and sharpness exploration should use separate low-rank modules. A primary LoRA branch descends the task loss while an auxiliary branch ascends it inside a norm ball. Because the adversarial branch evolves independently, its perturbations need not collapse into the primary LoRA subspace. The auxiliary branch is discarded after training.
+
+```py
+# Claude: Bi-LoRA training step
+def bilora_step(loss, W, A_1, B_1, A_2, B_2, η_1, η_2, ρ):
+    W̃ = W + B_1 @ A_1 + B_2 @ A_2
+    G_W = ∇(loss(W̃), W̃)
+    B_1, A_1 ← B_1 - η_1 * G_W @ A_1.T, A_1 - η_1 * B_1.T @ G_W
+    B_2, A_2 ← B_2 + η_2 * G_W @ A_2.T, A_2 + η_2 * B_2.T @ G_W
+    A_2, B_2 ← project_product_norm(A_2, B_2, ρ)
+    return A_1, B_1, A_2, B_2
+
+def bilora_merge(W, A_1, B_1):
+    return W + B_1 @ A_1                       # Claude: discard adversarial branch
+```
+
+**Evidence:** The authors fine-tune on MetaMathQA, Code-Feedback, WizardLM, and Alpaca, then evaluate on separate benchmarks including GSM8K, HumanEval, MT-Bench, MMLU, DROP, and BBH. Against LoRA, reported Llama-2 gains are +2.11 on GSM8K, +2.45 on HumanEval, and +0.34 on MT-Bench. Bi-LoRA mostly improves on Flat-LoRA in the same table, while costing one gradient step per iteration. These cross-dataset evaluations are more informative than same-dataset validation, but they are not a controlled domain-generalization study.
+
+**Grade:** PE+BL+BF=3.5 (beats LoRA broadly and beats full FT on some reported tasks)
+
+---
+
+## 38. LoRA-MGPO -- Momentum-Guided Perturbation Optimization
+
+**Paper:** [Chang et al. 2025](https://aclanthology.org/2025.findings-emnlp.34/) (Findings EMNLP 2025)
+**Code:** [github.com/llm172/LoRA-MGPO](https://github.com/llm172/LoRA-MGPO)
+**Saved:** [docs/lora_mgpo_momentum_perturbation.md](docs/lora_mgpo_momentum_perturbation.md)
+
+**Hypothesis:** Optimizer momentum supplies a cheap, stable approximation to SAM's adversarial direction. Perturb LoRA parameters along the previous first-moment vector, normalize the radius using an EMA of gradient norms, and compute only one gradient at the perturbed point.
+
+```py
+# Claude: LoRA-MGPO training step
+def mgpo_step(loss, W, θ, m, ḡ, ρ, β, optimizer):
+    ε_θ = ρ * m / (norm(m) * ḡ)                # Claude: θ = (A, B)
+    Ã, B̃ = unpack(θ + ε_θ)
+    g = ∇(loss(W + B̃ @ Ã), θ + ε_θ)
+    θ, m ← optimizer.step(θ, m, g)
+    ḡ ← β * ḡ + (1 - β) * norm(g)
+    return θ, m, ḡ
+```
+
+**Evidence:** The authors report a T5 GLUE average of 88.81 versus 82.08 for LoRA and 87.91 for full fine-tuning. On Llama-2, MGPO is the strongest reported PEFT method on MT-Bench, GSM8K, and HumanEval at several ranks, though it remains below full fine-tuning on GSM8K and HumanEval. The large GLUE margin is concentrated in CoLA and MRPC and comes from the authors' own setup. The experiments support optimization stability and conventional generalization, not an explicit curvature measurement or controlled OOD transfer.
+
+**Grade:** PE+BL+BF=3.5 (beats LoRA and slightly beats full FT on the reported GLUE average)
+
+---
+
 ## Scorecard
 
 Sorted by evidence strength (max 8). See [scoring legend](#evidence-scoring) above.
@@ -947,11 +1050,15 @@ Sorted by evidence strength (max 8). See [scoring legend](#evidence-scoring) abo
 |    # | Method        | Score | Breakdown   | Theme            |
 | ---: | ------------- | ----: | ----------- | ---------------- |
 |    6 | PiSSA         |   5.0 | PE+BL+BF+DE | SVD basis        |
+|   36 | FMLoRA       |   5.0 | PE+BL+BF+DE | flatness         |
 |    4 | DoRA          |   4.5 | PE+BL+BF+WA | dir/strength     |
 |   11 | AntiPaSTO*    |   4.5 | PE+DE+OOD   | SVD+rotation     |
 |   34 | Flat-LoRA     |   4.0 | PE+BL+OOD   | flatness         |
 |   13 | BOFT          |   4.0 | PE+BF+DE    | orthogonal       |
 |    5 | DeLoRA        |   3.5 | PE+BL+DE    | dir/strength     |
+|   35 | BAR           |   3.5 | PE+BL+DE    | flatness         |
+|   37 | Bi-LoRA       |   3.5 | PE+BL+BF    | flatness         |
+|   38 | LoRA-MGPO     |   3.5 | PE+BL+BF    | flatness         |
 |    8 | SSVD          |   3.5 | PE+BL+DE    | SVD basis        |
 |   31 | CLOVER        |   3.5 | PE+BL+BF    | SVD+architecture |
 |   32 | PSOFT         |   3.5 | PE+BL+DE    | SVD+orthogonal   |
@@ -985,7 +1092,7 @@ Sorted by evidence strength (max 8). See [scoring legend](#evidence-scoring) abo
 
 ## Themes: What the Evidence Tells Us
 
-Looking across all 34 methods, the successful adapters share a recipe: choose coordinates that align with pretrained structure, constrain updates to preserve that structure, and control update strength explicitly.
+Looking across all 38 methods, the successful adapters share a recipe: choose coordinates that align with pretrained structure, constrain updates to preserve that structure, and control update strength explicitly.
 
 The pattern is strong enough to organize the literature by theme rather than by year.
 
@@ -1000,13 +1107,13 @@ The *direction-versus-strength* split follows naturally. DoRA, DeLoRA, ROAD, and
 
 The *rank* debate is secondary once basis is accounted for. Full-rank updates help on harder tasks (RandLoRA, C3A), but a good low-rank subspace beats a poorly chosen full-rank update (PiSSA, SVFT). "Which subspace" matters more than "how many free directions".
 
-*Curvature* is probably best treated as space-specific rather than as one adapter principle. Flat-LoRA's authors report that smoothing task loss around the merged weights improves LoRA, including under corruption and instruction-following shifts. CrispEdit instead constrains curvature of a capability loss, while TRAM regularizes predictive-distribution changes in function space. Counterexamples with flat non-generalizing minima make weight-space flatness weak evidence about semantic depth. Context curvature of a steering effect remains a plausible but untested diagnostic. The quote-anchored argument and counterevidence are in [the Vargdown evidence map](adapters_vargdown.argdown).
+*Flatness and curvature* form one related family, but the differentiated variable matters. Flat-LoRA, FMLoRA, Bi-LoRA, and MGPO seek finite-neighborhood flatness through random, adversarial, or momentum-guided perturbations. BAR instead isolates factor balancedness as a proposed implicit effect of SAM. This flatness-seeking family does not diagonalize a Hessian. The explicit low-loss-curvature hypothesis constrains updates to low-eigenvalue directions of a named loss; CrispEdit is the closest adjacent method. Function and context curvature differentiate predictions or steering effects with respect to inputs, activations, or context paths; TRAM supports this axis, while context curvature of a steering effect remains a plausible but untested diagnostic. Counterexamples with flat non-generalizing minima make weight-space flatness weak evidence about semantic depth. The quote-anchored argument and counterevidence are in [the Vargdown evidence map](adapters_vargdown.argdown).
 
 Finally, methods that respect *functional architecture* are promising but early. CLOVER's joint Q-K and V-O treatment outperforms per-matrix updates in reported setups, and ReFT shows targeted activation interventions can be far more parameter-efficient than weight updates. Both suggest that treating transformer layers as computation graphs -- not bags of independent matrices -- is a productive direction.
 
 ### What I now believe (and didn't before)
 
-Before writing this catalog, I thought of adapters mainly as engineering trade-offs: LoRA is cheap, full FT is better, pick your budget. After reading 34 adapter papers carefully, I updated on three things:
+Before writing this catalog, I thought of adapters mainly as engineering trade-offs: LoRA is cheap, full FT is better, pick your budget. After reading 38 adapter papers carefully, I updated on three things:
 
 1. **The SVD basis outperforms random-initialized and standard bases.** The consistent advantage of SVD-initialized methods (PiSSA > LoRA, SVFT recovering 96% of full FT with 0.006% params, CLOVER's joint SVD beating per-matrix LoRA) is hard to explain as coincidence. The model's singular vectors appear to encode meaningful computational directions that the optimizer discovers faster when given them as a starting point. But SVD is linear and transformers are not; the advantage could be a warm-start effect; and almost no papers compare against other structured bases. "SVD > random" is solid, "SVD is the right basis" remains open. Strength of evidence: moderate (multiple independent groups, multiple modalities, but all within-paper comparisons).
 
