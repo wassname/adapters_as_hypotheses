@@ -1,6 +1,6 @@
 ===
 title: Adapters as Representational Hypotheses -- Which Geometric Priors About Transformer Internals Hold Under Intervention?
-author: Compiled from 33 PEFT papers (2021--2025)
+author: Compiled from 34 PEFT methods plus adjacent evidence (2021--2026)
 model:
     mode: strict
 ===
@@ -14,7 +14,7 @@ model:
 // hundreds of papers, and almost nobody reads it as science about
 // representations.
 //
-// Pseudocode for each adapter lives in adapters_pseudocode.md
+// Pseudocode for each adapter lives in adapters_as_hypotheses.md (README)
 // Evidence files are in docs/ (frozen copies of papers as markdown)
 // ══════════════════════════════════════════════════════════════════════
 
@@ -424,6 +424,141 @@ model:
     share structure that priors can exploit.
     {reason: "multiple methods achieve extreme compression suggesting high redundancy in naive parameterizations; supports the thesis that the right basis captures this shared structure", inference: 0.60}
   +> [Natural Manifold]
+
+
+// ══════════════════════════════════════════════════════════════════════
+// THEME 8: CURVATURE IS SPACE-SPECIFIC
+// Adapter: Flat-LoRA. Adjacent evidence: CrispEdit, SGD subspaces,
+// sharpness counterexamples, TRAM, and steering generalization.
+// ══════════════════════════════════════════════════════════════════════
+
+# Curvature
+
+[Curvature Is Space-Specific]: Curvature only becomes an intervention
+  hypothesis after naming the scalar landscape and the space or path in
+  which it is measured. Weight-, capability-, and function-space curvature
+  make different predictions about robustness and generalization.
+  + <Full Weight Flatness>
+  + <Curvature Direction Ambiguity>
+  + <Flatness OOD Limits>
+  + <Function Space Curvature>
+
+
+<Full Weight Flatness>
+
+(1) [Flat-LoRA Smooths Merged Weights]: Flat-LoRA trains low-rank factors
+    under random perturbations of the merged weight matrix so the solution
+    is flat in the full task-loss landscape. #observation
+    [Li et al. 2024](https://arxiv.org/abs/2409.14396)
+    [evidence](docs/flat_lora_full_parameter_flatness.md#L1-L35)
+    > Despite recent progress in improving LoRA’s performance, the relationship between the LoRA optimization space and the full parameter space is often overlooked. **A solution that appears flat in the loss landscape of the LoRA space may still exhibit sharp directions in the full parameter space, potentially compromising generalization. We introduce Flat-LoRA, which aims to identify a low-rank adaptation situated in a flat region of the full parameter space.** Instead of adopting the well-established sharpness-aware minimization approach, which incurs significant computation and memory overheads, we employ a Bayesian expectation loss objective to preserve training efficiency. Further, we design a refined random perturbation generation strategy for improved performance and carefully manage memory overhead using random seeds.
+    {reason: "ICML 2025; authors' abstract for their own method; the main perturbation scheme covers adapted linear matrices, while all-layer perturbation is reported separately in the appendix; no independent replication found", credence: 0.78}
+(2) [CrispEdit Protects Capability Loss]: CrispEdit projects model-editing
+    updates into the low-curvature subspace of a separate capability loss,
+    estimated with Gauss-Newton curvature and K-FAC. #observation
+    [Ikram et al. 2026](https://arxiv.org/abs/2602.15823)
+    [evidence](docs/crispedit_low_curvature_editing.md#L39-L46)
+    > We present CrispEdit, a scalable and principled second-order editing algorithm that treats capability preservation as an explicit constraint, unifying and generalizing several existing editing approaches. **CrispEdit formulates editing as constrained optimization and enforces the constraint by projecting edit updates onto the low-curvature subspace of the capability-loss landscape.** At the crux of CrispEdit is expressing capability constraint via Bregman divergence, whose quadratic form yields the Gauss–Newton Hessian exactly and even when the base model is not trained to convergence. We make this second-order procedure efficient at the LLM scale using Kronecker-factored approximate curvature (K-FAC) and a novel matrix-free projector that exploits Kronecker structure to avoid constructing massive projection matrices.
+    {reason: "May 2026 preprint; authors' abstract for a model-editing method rather than an adapter; capability is evaluated on a designated reference set", credence: 0.66}
+----
+(3) [Low Curvature Protects the Chosen Loss]: Flat-LoRA seeks task-loss
+    insensitivity around merged weights; CrispEdit seeks capability-loss
+    insensitivity along edit directions. Neither makes low curvature a
+    detector of the target behavior's semantic depth.
+    {reason: "the methods constrain different scalar landscapes; the distinction follows from their objectives rather than their reported benchmark gains", inference: 0.82}
+  +> [Curvature Is Space-Specific]
+
+
+<Curvature Direction Ambiguity>
+
+(1) [Low-Curvature Complement Can Train]: Projecting SGD updates out of the
+    dominant training-loss Hessian subspace can preserve training progress.
+    #observation
+    [Song, Ahn, Yun 2024](https://arxiv.org/abs/2405.16002)
+    [evidence](docs/sgd_low_curvature_subspace.md#L31-L40)
+    > Given this alignment, this paper explores whether neural networks can be trained within the dominant subspace, which, if feasible, could lead to more efficient training methods. **Our primary observation is that when the SGD update is projected onto the dominant subspace, the training loss does not decrease further. This suggests that the observed alignment between the gradient and the dominant subspace is spurious. Surprisingly, projecting out the dominant subspace proves to be just as effective as the original update, despite removing the majority of the original update component.** We observe similar behavior across practical setups, including the large learning rate regime (also known as Edge of Stability), Sharpness-Aware Minimization, momentum, and adaptive optimizers.
+    {reason: "ICLR 2025 empirical result on training-loss Hessians; main experiments use small supervised vision and text-classification settings", credence: 0.74}
+(2) [High-Curvature Dimensions Can Drive Improvement]: ES probes on LLM
+    reward landscapes instead attribute improvement to a small stiff
+    subspace. #observation
+    [Liang et al. 2026](https://arxiv.org/abs/2602.00170)
+    [evidence](docs/blessing_dimensionality_variance_curvature.md#L20-L30)
+    > We also observe a second seemingly separate phenomenon: under fixed hyperparameters, the stochastic fine-tuning reward often rises, peaks, and then degrades in both ES and GRPO. **We argue that both effects reflect a shared geometric property of fine-tuning landscapes: they are low-dimensional in curvature. A small set of high-curvature dimensions dominates improvement, producing (i) heterogeneous time scales that yield rise–then–decay under fixed stochasticity, as captured by a minimal quadratic stochastic-ascent model, and (ii) degenerate improving updates, where many random perturbations share similar components along these directions.** Using ES as a geometric probe on fine-tuning reward landscapes of GSM8K, ARC-C, and WinoGrande across Qwen2.5-Instruct models (0.5B–7B), we show that reward-improving perturbations remain empirically accessible with small populations across scales.
+    {reason: "February 2026 preprint; authors' interpretation of ES reward probes on Qwen2.5-Instruct 0.5B-7B, not a direct high-versus-low projection intervention", credence: 0.55}
+----
+(3) [No Universal Useful-Curvature Side]: These results are not direct
+    replications because they use different objectives, scales, and
+    optimizers. Together they make a universal high- or low-curvature
+    prescription improbable.
+    {reason: "the apparent conflict is largely regime-dependent; the safe conclusion is that the scalar objective and optimizer must be specified", inference: 0.72}
+  +> [Curvature Is Space-Specific]
+
+
+<Flatness OOD Limits>
+
+(1) [Flatness Need Not Generalize]: Flat non-generalizing minimizers exist,
+    and sharpness-minimizing algorithms can generalize for reasons beyond
+    minimizing sharpness. #observation
+    [Wen, Li, Ma 2023](https://arxiv.org/abs/2307.11007)
+    [evidence](docs/sharpness_generalization_counterexample.md#L16-L30)
+    > This work critically examines this explanation. Through theoretical and empirical investigation, we identify the following three scenarios for two-layer ReLU networks: (1) flatness provably implies generalization; **(2) there exist non-generalizing flattest models and sharpness minimization algorithms fail to generalize, and (3) perhaps most surprisingly, there exist non-generalizing flattest models, but sharpness minimization algorithms still generalize. Our results suggest that the relationship between sharpness and generalization subtly depends on the data distributions and the model architectures and sharpness minimization algorithms do not only minimize sharpness to achieve better generalization.** This calls for the search for other explanations for the generalization of over-parameterized neural networks.
+    {reason: "theorem-backed counterexamples plus experiments on stylized two-layer networks; strong against a universal implication, weak about modern LLM adapters specifically", credence: 0.84}
+(2) [Simple Features Can Be Shortcuts]: Simplicity bias can select one easy
+    feature while ignoring predictive complex features, making apparently
+    benign shifts destructive. #observation
+    [Shah et al. 2020](https://arxiv.org/abs/2006.07710)
+    [evidence](docs/simplicity_bias_pitfalls.md#L40-L48)
+    > Through theoretical analysis and targeted experiments on these datasets, we make four observations: **(i) SB of SGD and variants can be extreme: neural networks can exclusively rely on the simplest feature and remain invariant to all predictive complex features. (ii) The extreme aspect of SB could explain why seemingly benign distribution shifts and small adversarial perturbations significantly degrade model performance.** (iii) Contrary to conventional wisdom, SB can also hurt generalization on the same data distribution, as SB persists even when the simplest feature has less predictive power than the more complex features. (iv) Common approaches to improve generalization and robustness—ensembles and adversarial training—can fail in mitigating SB and its pitfalls. Given the role of SB in training neural networks, we hope that the proposed datasets and methods serve as an effective testbed to evaluate novel algorithmic approaches aimed at avoiding the pitfalls of SB.
+    {reason: "NeurIPS 2020 theoretical analysis and controlled synthetic/image experiments; the paper does not connect feature simplicity to loss curvature", credence: 0.78}
+----
+(3) [Weight Flatness Is Weak Semantic Evidence]: Weight-space flatness can
+    improve a training procedure without showing that the learned feature is
+    deep, causal, or robust under the shift of interest.
+    {reason: "Wen et al. break flatness-implies-generalization in stylized settings; Shah et al. establish shortcut risk but supply no curvature link", inference: 0.78}
+  +> [Curvature Is Space-Specific]
+
+
+<Function Space Curvature>
+
+(1) [TRAM Regularizes Function Curvature]: TRAM combines SAM parameter
+    sharpness with trust-region divergence in function space. #observation
+    [Sherborne et al. 2023](https://arxiv.org/abs/2310.03646)
+    [evidence](docs/tram_function_space_curvature.md#L58-L65)
+    > Sharpness-aware minimization (SAM) reports improving domain generalization by reducing the loss surface curvature in the parameter space. However, **generalization during fine-tuning is often more dependent on the transferability of representations in the function space. Trust-region methods (TR) target this goal by regularizing representation curvature** to reduce catastrophic forgetting of pre-trained task-agnostic information while adopting task-specific skills. We consider unifying these strategies for low curvature in both parameter space and function space to improve out-of-domain (OOD) generalization. We propose Trust Region Aware Minimization (TRAM), a SAM algorithm fine-tuning for low parameter sharpness and smooth, informative representations preserving pre-trained structure. TRAM uses a trust region bound to inform the SAM adversarial neighborhood, introducing an awareness of function curvature within optimization for flatter minima.
+    {reason: "authors' abstract and method framing; reports OOD experiments in vision and language, but this is function divergence rather than a context-path second derivative", credence: 0.68}
+(2) [TRAM Has Multiple Trust Regions]: TRAM estimates divergence against a
+    previous step, the pretrained model, a noised input, or a Fisher metric.
+    #observation
+    [Sherborne et al. 2023](https://arxiv.org/abs/2310.03646)
+    [evidence](docs/tram_function_space_curvature.md#L1159-L1172)
+    > We propose four variants of TRAM based on different trust region estimations. **TRAM-$\theta_{t-1}$ uses divergence against the previous step; TRAM-$\theta_0$ is a simplifying heuristic of this divergence against the pre-trained model only; and TRAM-$x$ uses noised input divergence, $d_x$.** TRAM-Fisher extends FSAM by measuring the Fisher Information metric around the trust region.
+    {reason: "Table 2 caption from the authors' paper; all four are trust-region estimates, not steering-effect curvature", credence: 0.80}
+(3) [Static Steering Assumes a Constant Direction]: SVF motivates
+    context-dependent steering by replacing one global vector with a local
+    gradient field. #observation
+    [Li, Li, Huang 2026](https://arxiv.org/abs/2602.01654)
+    [evidence](docs/steering_vector_fields_context_aware.md#L5-L12)
+    > Reliability also degrades in long-form generation and multi-attribute steering. We take a geometric view of these failures. **A static SV applies the same update vector everywhere in representation space, implicitly assuming that the concept-improving direction is constant across contexts. When the locally effective direction varies with the current activation, a single global vector can become misaligned, which yields weak or reversed effects. Guided by this perspective, we propose Steering Vector Fields (SVF), which learns a differentiable concept scoring function whose local gradient defines the steering direction at each activation, making interventions explicitly context-dependent.** This formulation supports coordinated multi-layer interventions in a shared, aligned concept space, and enables efficient long-form and multi-attribute control within a unified framework.
+    {reason: "February 2026 preprint; authors' motivation and method description with reported OOD results on hallucination and truthfulness tasks; first-order context dependence rather than curvature measurement", credence: 0.58}
+(4) [Steering Generalization Is Measurable]: One-shot optimized steering
+    vectors provide a direct cross-input generalization target. #observation
+    [Dunefsky, Cohan 2025](https://arxiv.org/abs/2502.18862)
+    [evidence](docs/one_shot_steering_generalization.md#L15-L22)
+    > Steering vectors (SVs) have emerged as a promising approach for interpreting and controlling LLMs, but current methods typically require large contrastive datasets that are often impractical to construct and may capture spurious correlations. **We propose directly optimizing SVs through gradient descent on a single training example, and systematically investigate how these SVs generalize.** We consider several SV optimization techniques and find that the resulting SVs effectively mediate safety-relevant behaviors in multiple models.
+    {reason: "authors' abstract; measures cross-input transfer but contains no curvature measure", credence: 0.68}
+----
+(5) [Context-Curvature Diagnostic Is Open]: For a fixed steering direction
+    v and ordered context path x(t), estimate the second derivative of its
+    behavioral effect with
+    kappa_v = abs(e_v(x(t+epsilon)) - 2e_v(x(t)) + e_v(x(t-epsilon))) / epsilon^2.
+    Here e_v(x) is the steered-minus-unsteered behavioral effect, and x(t)
+    must vary context while preserving the behavior being tested. Unordered
+    paraphrases support sensitivity or variance, not a second derivative.
+    Low kappa_v might predict OOD transfer after controlling for in-distribution
+    effect size, but a correlation would indicate robustness rather than prove
+    semantic depth. #assumption
+    {reason: "TRAM supplies the function-space prior, SVF motivates context dependence, and Dunefsky-Cohan supply the transfer target; none of these sources tests this second-order diagnostic", inference: 0.55}
+  +> [Curvature Is Space-Specific]
 
 
 // ══════════════════════════════════════════════════════════════════════

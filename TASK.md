@@ -4,18 +4,18 @@ TASK write a new file, from the old part.
 
 ### Task 1: adapters_as_hypotheses.md
 - [x] Preamble with pragmatic interpretability framing
-- [x] 33 entries with pseudocode, hypothesis, evidence, grade
+- [x] 34 catalog entries; 32 active methods have pseudocode, while deprecated Bone and out-of-scope Trainable Tokens are marked as boundary entries
 - [x] All papers saved to docs/ (full size, no truncation)
 - [x] Sub-agent review completed, fixes applied
 
 ### Task 2: adapters_vargdown.argdown (NEW)
 - [x] Compiled evidence into vargdown (verified argdown) format
-- [x] 6 thematic argument groups: SVD basis, orthogonal, decoupling, gain control, rank, functional architecture
+- [x] 8 thematic argument groups: SVD basis, orthogonal, decoupling, gain control, rank, functional architecture, compression, curvature
 - [x] Main thesis: [Natural Manifold] -- SVD basis + orthogonal constraints define natural intervention manifold
-- [x] ~20 observations with exact blockquotes from docs/ evidence files
+- [x] Quote-anchored observations link to frozen docs/ evidence files
 - [x] ~10 assumptions for papers without frozen evidence
 - [x] 3 contrary arguments (gain control, rank secondary, linearity)
-- [x] Pseudocode companion: adapters_pseudocode.md (20 methods in pseudopy format)
+- [x] Pseudocode catalog: adapters_as_hypotheses.md (README symlink)
 - [x] Sub-agent review: fixed 5 critical (wrong evidence links, paraphrased quotes), 7 minor (orphans, credence calibration)
 - [x] All credences calibrated: reason first, no overconfidence on preprints
 
